@@ -1,0 +1,14 @@
+video/*
+__pychache__
+*.pyc
+*.mat
+*.jpg
+*.mp4
+*.pth
+*/opt.txt
+ExtractPitchLines/*
+ExtractPitchLines
+checkpoints/experiment_name/*
+
+# input_footage/video/*
+# input_footage/picture/*
