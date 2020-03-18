@@ -10,9 +10,9 @@ from SCCvSD_Utils.projective_camera import ProjectiveCamera
 
 import torchvision.transforms as transforms
 
-class NewFrame:
+class Frame:
     def __init__(self, frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model):
-        # Set variables
+        # Initialize variables
         self.frame = frame
         self.original = frame
         self.features = None
@@ -32,8 +32,8 @@ class NewFrame:
         self.template_h = 74
         self.template_w = 115
 
+        # Initialize a flann
         self.flann = pyflann.FLANN()
-
         self.retrieved_image = None
 
 
@@ -44,12 +44,12 @@ class NewFrame:
         self.generate_hog_features()
         self.retrieve_a_camera()
         
-        # Visualize the frame:
-        # self.visualize()
-        self.save()
+        # Visualize or save the frame:
+        self.visualize()
+        # self.save()
 
 
-
+    # Pix2Pix model to extract lines and field area 
     def extract_pitch_lines(self):
         load_size = 256
         # Resize frame for pitch detection
@@ -71,8 +71,6 @@ class NewFrame:
         
         self.input_image['A_paths'] = None
         self.input_image['B_paths'] = None
-
-        
 
         self.pix2pix_model.set_input(self.input_image)
         self.pix2pix_model.test()
@@ -100,13 +98,8 @@ class NewFrame:
 
         self.temp_frame = cv2.resize(self.pix_lines, (im_w,im_h))
 
-        # ---- Start of things going wrong
-
         # compute hog and transpose so that shape matches the database features
         self.features = hog.compute(self.temp_frame).T
-        
-        # self.features = np.fliplr(self.features)
-
 
     def retrieve_a_camera(self):
         print(self.database_features.shape)
@@ -120,29 +113,21 @@ class NewFrame:
         # Find the camera that corresponds to the feature set that has been found to match
         retrieved_camera_data = self.database_cameras[retrieved_index]
 
-
-        # ---- End of things going wrong
-
+        # Determine camera variables
         u, v, fl = retrieved_camera_data[0:3]
         rod_rot = retrieved_camera_data[3:6]
         cc = retrieved_camera_data[6:9]
-        # print(u,v,fl)
-        # print(rod_rot)
-        # print(cc)
 
         retrieved_camera = ProjectiveCamera(fl, u, v, cc, rod_rot)
 
         retrieved_h = IouUtil.template_to_image_homography_uot(retrieved_camera, self.template_h, self.template_w)
-
-        # iou_1 = IouUtil.iou_on_template_uot(gt_h, retrieved_h)
-        # print('retrieved homogrpahy IoU {:.3f}'.format(iou_1))
 
         # Turn the camera to an image with a template
         self.retrieved_image = SyntheticUtil.camera_to_edge_image(retrieved_camera_data, self.model_points, self.model_line_index,
                                                             im_h=self.frame_height, im_w=self.frame_width, line_width=4)
         self.pix_lines = cv2.resize(self.pix_lines, (1280, 720), interpolation=cv2.INTER_CUBIC)[:, :, None]
         
-        # Refine using Lucas-Kanade algorithm
+        # TODO: Refine using Lucas-Kanade algorithm, this still needs to be implemented
         # dist_threshold = 50
         # query_dist = SyntheticUtil.distance_transform(self.pix_lines)
         # retrieved_dist = SyntheticUtil.distance_transform(self.retrieved_image)
@@ -178,14 +163,11 @@ class NewFrame:
         # cv2.imshow('original', self.original)
         # cv2.imshow('resized', self.temp_frame)
         # cv2.imshow('refined', self.refined_frame)
-        cv2.waitKey(40000)
+        # cv2.waitKey(40000)
 
     def save(self):
         print("start saving")
         cv2.imwrite('./output_images/original.jpg', self.original)
         cv2.imwrite('./output_images/pix2pix.jpg', self.pix_lines)
         cv2.imwrite('./output_images/retrieved.jpg', self.retrieved_image)
-        # print("----SIZES---")
-        # # print(self.original.shape)
-        # # print(self.retrieved_image.shape)
-        # print('------------"')
+

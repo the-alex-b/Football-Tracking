@@ -10,12 +10,15 @@ from models.models import create_model
 # from util.visualizer import Visualizer
 # from util import html
 
+
+""" This is the Pix2Pix model function from the two-gan model. Idealy this gets adapted and worked into this codebase. """
+
 def CreatePix2PixModel():
 # --which_direction AtoB --model two_pix2pix --name soccer_seg_detection_pix2pix --output_nc 1 --dataset_mode aligned --which_model_netG unet_256 --norm batch --how_many 186 --loadSize 256
 
     opt = TestOptions().parse()
-    print(opt)
-    print("0--")
+    # print(opt)
+    # print("0--")
 
     # Custom stuff that is normally passed on command line
     opt.dataroot = './ExtractPitchLines/datasets/soccer_seg_detection'
@@ -39,16 +42,10 @@ def CreatePix2PixModel():
     opt.no_flip = True  # no flip
     opt.continue_train = False
 
-    print(opt.dataroot)
+    # print(opt.dataroot)
 
     data_loader = CreateDataLoader(opt)
     dataset = data_loader.load_data()
     model = create_model(opt)
 
-    # visualizer = Visualizer(opt)
-    # # create website
-    # web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
-    # webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch)
-
-        # return model
     return model

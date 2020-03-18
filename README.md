@@ -8,6 +8,7 @@
 - [X] Determining basic field homography
 - [ ] Refine homography by applying Lucas-Kanade algorithm
 - [ ] Detecting and tracking players 
+- [ ] Track the ball 
 - [ ] Combine homography and player coordinates to create digital representation
 
 
@@ -19,7 +20,7 @@
 3. Train the two-gan network and move network paths to ./checkpoints/Linedetection (see readme in folder)
 4. Acquire the camera features and worldcup file from SCCvSD repo. (See ./PreTrainedNetworks/SCCvSD)
 5. Put your footage in ./input_footage/video or ./input_footage/picture
-6. Reference your footage (or still image) in the run.py file. This is the scripts entry point.
+6. Reference your footage (or still image) in the run.py file. This is the entry point.
 7. python run.py
 
 
@@ -32,8 +33,8 @@ Extra (should be fixed but seems to be necessary to get this working right now):
 
 This code is based upon and heavily influenced by the following repositories:
 
-*https://github.com/lood339/pytorch-two-GAN
-*https://github.com/lood339/SCCvSD
+* https://github.com/lood339/pytorch-two-GAN
+* https://github.com/lood339/SCCvSD
 
 
 

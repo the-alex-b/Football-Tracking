@@ -4,11 +4,9 @@ import time
 import scipy.io as sio
 from functions import CreatePix2PixModel
 
-from frame import NewFrame
+from frame import Frame
 
-import sys
-sys.path.append('./ExtractPitchLines')
-
+# ----- Loading trained models and datasets ----
 
 # Create pix2pix model
 pix2pix_model = CreatePix2PixModel()
@@ -27,19 +25,14 @@ data = sio.loadmat('./PreTrainedNetworks/SCCvSD/worldcup2014.mat')
 model_points = data['points']
 model_line_index = data['line_segment_index']
 
-# Ground truth homography
-# data = sio.loadmat('./mat/test.mat')
-# annotation = data['annotation']
-# gt_h = annotation[0][query_index][1]  # ground truth
 
-# img = cv2.imread('./16.jpg')
+# --- Running the model -----
 
-# NewFrame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model)
+# Run on single frame
+# img = cv2.imread('./input_footage/picture/16.jpg')
+# Frame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model)
 
-
-
-
-# # Main video loop
+# Main video loop
 cap = cv2.VideoCapture('./input_footage/video/540_LQ.mp4')
 i = 0 
 
@@ -51,15 +44,15 @@ while (True):
 
     if not ret:
         break
-    if i % 500 == 0:
+    # Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
+    modulo = 300
+    if i % modulo == 0:
         print("----"+str(i)+"----")
-        print("Analyze the frame and display result")
-        NewFrame(frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model)
+        Frame(frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
 # Clean and clear
 cap.release()
-
 cv2.destroyAllWindows()
