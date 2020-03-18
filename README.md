@@ -30,10 +30,10 @@ Extra (should be fixed but seems to be necessary to get this working right now):
 
 ### Relevant repositories
 
-This code is based upon the following repositories:
+This code is based upon and heavily influenced by the following repositories:
 
-https://github.com/lood339/pytorch-two-GAN
-https://github.com/lood339/SCCvSD
+*https://github.com/lood339/pytorch-two-GAN
+*https://github.com/lood339/SCCvSD
 
 
 
