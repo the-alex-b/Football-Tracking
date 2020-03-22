@@ -11,12 +11,13 @@ from SCCvSD_Utils.projective_camera import ProjectiveCamera
 import torchvision.transforms as transforms
 
 class Frame:
-    def __init__(self, frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model):
+    def __init__(self, frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, iteration):
         # Initialize variables
         self.frame = frame
         self.original = frame
         self.features = None
         self.temp_frame = None
+        self.i = iteration
 
         self.frame_height = frame.shape[0]
         self.frame_width = frame.shape[1]
@@ -45,8 +46,8 @@ class Frame:
         self.retrieve_a_camera()
         
         # Visualize or save the frame:
-        self.visualize()
-        # self.save()
+        # self.visualize()
+        self.save()
 
 
     # Pix2Pix model to extract lines and field area 
@@ -108,7 +109,7 @@ class Frame:
         # Find the nearest neighbour feature match
         result, _ = self.flann.nn(self.database_features, self.features, 1, algorithm="kdtree", trees=16, checks=64)
         retrieved_index = result[0]
-        print("Retrieved index: "+str(retrieved_index))
+        # print("Retrieved index: "+str(retrieved_index))
 
         # Find the camera that corresponds to the feature set that has been found to match
         retrieved_camera_data = self.database_cameras[retrieved_index]
@@ -117,57 +118,50 @@ class Frame:
         u, v, fl = retrieved_camera_data[0:3]
         rod_rot = retrieved_camera_data[3:6]
         cc = retrieved_camera_data[6:9]
-
         retrieved_camera = ProjectiveCamera(fl, u, v, cc, rod_rot)
 
-        retrieved_h = IouUtil.template_to_image_homography_uot(retrieved_camera, self.template_h, self.template_w)
+        # Get the homography of the retrieved camera (still unrefined)
+        unrefined_homography = retrieved_camera.get_homography()
 
         # Turn the camera to an image with a template
         self.retrieved_image = SyntheticUtil.camera_to_edge_image(retrieved_camera_data, self.model_points, self.model_line_index,
                                                             im_h=self.frame_height, im_w=self.frame_width, line_width=4)
         self.pix_lines = cv2.resize(self.pix_lines, (1280, 720), interpolation=cv2.INTER_CUBIC)[:, :, None]
         
-        # TODO: Refine using Lucas-Kanade algorithm, this still needs to be implemented
-        # dist_threshold = 50
-        # query_dist = SyntheticUtil.distance_transform(self.pix_lines)
-        # retrieved_dist = SyntheticUtil.distance_transform(self.retrieved_image)
+        # Refine using lucas kanade algorithm
+        dist_threshold = 50
 
-        # # cv2.imshow("query", query_dist)
-        # # cv2.imshow("retrieved", retrieved_dist)
-        # # cv2.waitKey(40000)
+        query_dist = SyntheticUtil.distance_transform(self.pix_lines)
+        retrieved_dist = SyntheticUtil.distance_transform(self.retrieved_image)
 
+        query_dist[query_dist > dist_threshold] = dist_threshold
+        retrieved_dist[retrieved_dist > dist_threshold] = dist_threshold
 
-        # query_dist[query_dist > dist_threshold] = dist_threshold
-        # retrieved_dist[retrieved_dist > dist_threshold] = dist_threshold
+        warp = SyntheticUtil.find_transform(retrieved_dist, query_dist)
 
-        # #cv2_imshow(query_dist.astype(np.uint8))
-        # #cv2_imshow(retrieved_dist.astype(np.uint8))
+     
 
-        # h_retrieved_to_query = SyntheticUtil.find_transform(retrieved_dist, query_dist)
-        # transformation_matrix = h_retrieved_to_query@retrieved_h
-        # # print(transformation_matrix)
+        # Is this correct? Need to check! Should it be dot?
+        self.homography = np.matmul(unrefined_homography, warp)
+        
+        # Use the warp found in the refinement step to transorm the retrieved camera data and draw field lines. For nicer visualisation we should warp the camera features and redraw the field (so lines are not cut off)
+        self.refined_retrieved_image = cv2.warpPerspective(self.retrieved_image, warp, (1280, 720))
 
-        # transformation_matrix = np.asarray([
-        #     [1,0,50],
-        #     [0,1,50],
-        #     [0,0,1]
-        # ])
-
-        # self.refined_frame = cv2.warpPerspective(self.retrieved_image, transformation_matrix, (1280, 720))
 
 
 
     def visualize(self):
-        # cv2.imshow('adapted', self.pix_lines)
+        cv2.imshow('adapted', self.pix_lines)
         cv2.imshow('Edge image of retrieved camera', self.retrieved_image)
         # cv2.imshow('original', self.original)
         # cv2.imshow('resized', self.temp_frame)
-        # cv2.imshow('refined', self.refined_frame)
-        # cv2.waitKey(40000)
+        cv2.imshow('refined', self.refined_retrieved_image)
+        cv2.waitKey(40000)
 
     def save(self):
         print("start saving")
-        cv2.imwrite('./output_images/original.jpg', self.original)
-        cv2.imwrite('./output_images/pix2pix.jpg', self.pix_lines)
-        cv2.imwrite('./output_images/retrieved.jpg', self.retrieved_image)
+        cv2.imwrite('./output_images/{}_original.jpg'.format(self.i), self.original)
+        cv2.imwrite('./output_images/{}_pix2pix.jpg'.format(self.i), self.pix_lines)
+        # cv2.imwrite('./output_images/{}_retrieved.jpg'.format(self.i), self.retrieved_image)
+        cv2.imwrite('./output_images/{}_refined.jpg'.format(self.i), self.refined_retrieved_image)
 
