@@ -5,6 +5,7 @@ __pychache__
 *.jpg
 *.mp4
 *.pth
+*.h5
 */opt.txt
 ExtractPitchLines/*
 ExtractPitchLines
