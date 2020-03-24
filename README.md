@@ -21,7 +21,9 @@
 4. Acquire the camera features and worldcup file from SCCvSD repo. (See ./PreTrainedNetworks/SCCvSD)
 5. Put your footage in ./input_footage/video or ./input_footage/picture
 6. Reference your footage (or still image) in the run.py file. This is the entry point.
-7. python run.py
+7. Place mask_rcnn_coco_humanpose.h5 in ./PreTrainedNetworks/MaskRCNN 
+8. Run makepix2pixdirs.sh to create the pix2pix folders 
+9. python run.py
 
 
 Extra (should be fixed but seems to be necessary to get this working right now):

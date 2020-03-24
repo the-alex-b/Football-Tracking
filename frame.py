@@ -8,6 +8,8 @@ from SCCvSD_Utils.synthetic_util import SyntheticUtil
 from SCCvSD_Utils.iou_util import IouUtil
 from SCCvSD_Utils.projective_camera import ProjectiveCamera
 
+import playerdetection_maskrcnn as pldec
+
 import torchvision.transforms as transforms
 
 class Frame:
@@ -37,9 +39,10 @@ class Frame:
         self.flann = pyflann.FLANN()
         self.retrieved_image = None
 
-
-      
         # Analyze the frame
+        pldec.config_tf()
+        pldec.infer(frame)
+
         self.extract_pitch_lines()
         self.create_line_image()
         self.generate_hog_features()

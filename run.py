@@ -4,6 +4,10 @@ import time
 import scipy.io as sio
 from functions import CreatePix2PixModel
 
+import sys
+path = 'PATHTO/Keypoints-of-humanpose-with-Mask-R-CNN'
+sys.path.append(path)
+
 from frame import Frame
 
 # ----- Loading trained models and datasets ----
@@ -33,7 +37,7 @@ model_line_index = data['line_segment_index']
 # Frame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model)
 
 # # Main video loop
-cap = cv2.VideoCapture('./input_footage/video/540_LQ.mp4')
+cap = cv2.VideoCapture('./input_footage/video/540p_LQ.mp4')
 i = 0 
 
 # cap = cv2.VideoCapture('./video/1080')
