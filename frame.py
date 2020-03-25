@@ -41,8 +41,11 @@ class Frame:
         self.retrieved_image = None
 
         # Analyze the frame
+        print("Run player detection")
         pldec.config_tf()
-        pldec.infer(frame)
+        res = pldec.infer(frame)[0]
+        pldec.save_result(res, frame)
+        print("End player detection")
 
         self.extract_pitch_lines()
         self.create_line_image()

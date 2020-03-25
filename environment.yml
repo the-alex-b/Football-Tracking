@@ -143,5 +143,4 @@ dependencies:
     - wcwidth==0.1.9
     - werkzeug==1.0.0
     - wrapt==1.12.1
-prefix: /home/wheyndri/.conda/envs/video
 

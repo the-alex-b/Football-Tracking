@@ -6,11 +6,11 @@ import os
 import math
 import skimage.io
 import matplotlib.pyplot as plt
-import coco
+import scr.coco as coco
 #import utils
-import model as modellib
-import visualize
-from model import log
+import scr.model as modellib
+import scr.visualize as visualize
+from scr.model import log
 #from google.colab.patches import cv2_imshow
 from tqdm import tqdm
 
@@ -56,6 +56,7 @@ def infer(image):
 def save_result(r, image):
     print('saving res')
     class_names = ['BG', 'person']
-    visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
+    # visualize.display_keypoints(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
+    visualize.display_keypoints(image, r['rois'], r['keypoints'], r['class_ids'], class_names)
     # Change to save
     return

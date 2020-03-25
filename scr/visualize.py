@@ -18,7 +18,7 @@ import matplotlib.lines as lines
 from matplotlib.patches import Polygon
 import IPython.display
 import cv2
-import utils
+import scr.utils
 
 
 ############################################################
@@ -326,7 +326,7 @@ def display_keypoints(image, boxes, keypoints, class_ids, class_names,
         p = patches.Rectangle((x1, y1), x2 - x1, y2 - y1, linewidth=4,
                               alpha=0.7, linestyle="dashed",
                               edgecolor=color, facecolor='none')
-        ax.add_patch(p)
+        # ax.add_patch(p)
 
         # Label
         class_id = class_ids[i]

@@ -45,9 +45,9 @@ import zipfile
 import urllib.request
 import shutil
 
-from config import Config
-import utils
-import model as modellib
+from scr.config import Config
+import scr.utils as utils
+import scr.model as modellib
 
 # Root directory of the project
 ROOT_DIR = os.getcwd()
