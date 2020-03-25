@@ -9,6 +9,7 @@ from SCCvSD_Utils.iou_util import IouUtil
 from SCCvSD_Utils.projective_camera import ProjectiveCamera
 
 import playerdetection_maskrcnn as pldec
+import sys
 
 import torchvision.transforms as transforms
 
@@ -41,8 +42,13 @@ class Frame:
         self.retrieved_image = None
 
         # Analyze the frame
+        # Player detection
+        # ---------------
         pldec.config_tf()
-        pldec.infer(frame)
+        result = pldec.detectplayersbox(frame) # returns list of detections over multiple frames
+        pldec.save_result(result[0], frame, self.i) # only 1 frame being processed
+        playercoos = pldec.findplayerscoos(result[0])
+        # ---------------
 
         self.extract_pitch_lines()
         self.create_line_image()

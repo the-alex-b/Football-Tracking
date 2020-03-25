@@ -33,7 +33,7 @@ class InferenceConfig(coco.CocoConfig):
     KEYPOINT_MASK_POOL_SIZE = 7
     FPN_CLASSIF_FC_LAYERS_SIZE = 1024
 
-def infer(image):
+def detectplayersbox(image):
     print('starting inference')
     inference_config = InferenceConfig()
     model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=inference_config)
@@ -49,13 +49,19 @@ def infer(image):
     #for j in tqdm(range(n_det_frames)):
     #results[j] = model.detect_keypoint([images[j]], verbose=0)
     result = model.detect_keypoint([image], verbose=0)
+
     #results = [results[j][0] for j in range(n_det_frames)]
     return result
 
+def findplayerscoos(result): 
+    fp = np.mean(result['keypoints'][...,[0,1]][:,[15,16],:],axis = 1)
+    foot_positions = np.c_[fp,np.ones(fp.shape[0])]
+    return foot_positions
 
-def save_result(r, image):
+
+def save_result(r, image, i):
     print('saving res')
     class_names = ['BG', 'person']
-    visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'])
+    visualize.display_instances(image, r['rois'], r['masks'], r['class_ids'], class_names, r['scores'], figoutpath='./output_images/{}_pldetection.jpg'.format(i))
     # Change to save
     return

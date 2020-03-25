@@ -1,8 +1,8 @@
 name: video
 channels:
   - pytorch
-  - anaconda
   - conda-forge
+  - anaconda
   - defaults
 dependencies:
   - _libgcc_mutex=0.1=main
@@ -135,8 +135,8 @@ dependencies:
     - rsa==4.0
     - scikit-image==0.16.2
     - tensorboard==2.1.1
-    - tensorflow==2.1.0
-    - tensorflow-estimator==2.1.0
+    - tensorflow==2.0.0
+    - tensorflow-estimator==2.0.0
     - termcolor==1.1.0
     - tqdm==4.43.0
     - traitlets==4.3.3
