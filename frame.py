@@ -50,6 +50,7 @@ class Frame:
         playercoos = pldec.findplayerscoos(result[0])
         # ---------------
 
+        print(playercoos)
         self.extract_pitch_lines()
         self.create_line_image()
         self.generate_hog_features()

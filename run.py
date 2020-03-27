@@ -5,7 +5,7 @@ import scipy.io as sio
 from functions import CreatePix2PixModel
 
 import sys
-path = 'SOMEDIR/Keypoints-of-humanpose-with-Mask-R-CNN'
+path = './scr'
 sys.path.append(path)
 
 from frame import Frame
@@ -33,29 +33,29 @@ model_line_index = data['line_segment_index']
 # --- Running the model -----
 
 # Run on single frame
-#img = cv2.imread('./input_footage/picture/16.jpg')
-#Frame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model,1)
+img = cv2.imread('./input_footage/picture/16.jpg')
+Frame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model,1)
 
 # # Main video loop
 cap = cv2.VideoCapture('./input_footage/video/540_LQ.mp4')
 i = 0 
 
- # cap = cv2.VideoCapture('./video/1080')
-while (True):
-     i = i + 1
-     # print(i)
-     ret, frame = cap.read()
-     if not ret:
-         break
-     # Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
-     modulo = 100
-     if i % modulo == 0:
-         print("----"+str(i)+"----")
-         Frame(frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, i)
+#  # cap = cv2.VideoCapture('./video/1080')
+# while (True):
+#      i = i + 1
+#      # print(i)
+#      ret, frame = cap.read()
+#      if not ret:
+#          break
+#      # Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
+#      modulo = 100
+#      if i % modulo == 0:
+#          print("----"+str(i)+"----")
+#          Frame(frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, i)
 
-     if cv2.waitKey(1) & 0xFF == ord('q'):
-         break
+#      if cv2.waitKey(1) & 0xFF == ord('q'):
+#          break
 
-# # Clean and clear
-cap.release()
-cv2.destroyAllWindows()
+# # # Clean and clear
+# cap.release()
+# cv2.destroyAllWindows()
