@@ -41,20 +41,43 @@ class Frame:
         self.flann = pyflann.FLANN()
         self.retrieved_image = None
 
-        # Analyze the frame
-        # Player detection
+        # Player detection, find all person coordinates in the frame
         # ---------------
         pldec.config_tf()
         result = pldec.detectplayersbox(frame) # returns list of detections over multiple frames
-        pldec.save_result(result[0], frame, self.i) # only 1 frame being processed
-        playercoos = pldec.findplayerscoos(result[0])
+        # pldec.save_result(result[0], frame, self.i) # only 1 frame being processed
+        self.playercoos = pldec.findplayerscoos(result[0])
         # ---------------
+        # Visualize player coordinates as circles below players:
+        for c in self.playercoos:
+            cv2.circle(self.original,(int(c[0]), int(c[1])), 5, (0,0,255), 3)
+        
 
-        print(playercoos)
+        # Call all functions that extract data from the frame to determine homography
         self.extract_pitch_lines()
         self.create_line_image()
         self.generate_hog_features()
         self.retrieve_a_camera()
+
+        # Use inverse of the homography to calculate topview coordinates of players
+        # This should be implemented in a separate function: create person Class? To also determine teamA/B or referee?
+        self.warped_coords = [] 
+        for c in self.playercoos:
+            c_mat = np.array([[c[0]],[c[1]],[1]])
+
+            hom_cords = np.linalg.inv(self.homography)@c_mat
+
+            self.warped_coords.append([hom_cords[0][0]/hom_cords[2][0],hom_cords[1][0]/hom_cords[2][0]])
+
+        # Warped coords belonging to worldcup image 16 (placeholder for faster development)
+        # self.warped_coords = [[92.01287027834677, 28.786941200521106], [94.66302995069726, 67.04521116566309], [95.50522352407108, 60.511763034888595], [97.82874971791972, 42.39573348700747], [91.24491420783876, 56.98150085508616], [113.06896849777085, 38.37172302960884], [90.4490186162751, 62.02393262415963], [80.46709610719846, 44.462272402932655], [88.0790275606092, 19.51399275883541], [97.8791538613156, 35.674698750579715], [81.00846673234102, 38.831727152810615], [78.82873504463414, 26.249622960034305], [87.45029855143562, 36.598743959497696], [99.58510108821706, 33.51209547287334], [78.72732178814238, 20.72997452258794]]
+        
+        # Create an empty top view. Pixsize is arbitrary
+        self.top_view = np.zeros((800,1200,3), np.uint8)
+
+        # Loop trough all warped coords and place a circle on blank top view.
+        for person in self.warped_coords:
+            cv2.circle(self.top_view, (int(person[0]*10), int(person[1]*10)), 5, (0,0,255), 5)
         
         # Visualize or save the frame:
         # self.visualize()
@@ -153,11 +176,17 @@ class Frame:
         # Use the homography to refine the found image to validate correctness.
         self.refined_retrieved_image = cv2.warpPerspective(self.retrieved_image, warp, (1280, 720))
 
+        self.original = cv2.resize(self.original,(1280, 720), interpolation=cv2.INTER_CUBIC)
+        print(self.original.shape)
+        print(self.refined_retrieved_image.shape)
+
+        self.overlayed_image = cv2.addWeighted(self.original,0.4,self.refined_retrieved_image,0.1,0)
+
         # This is the homography mapping the field to a top down view
         self.homography = warp@retrieved_homography
 
         # For validation: warp an image to top view:
-        # self.normalized_image = cv2.warpPerspective(self.original, np.linalg.inv(self.homography),(1280,720))
+        self.normalized_image = cv2.warpPerspective(self.original, np.linalg.inv(self.homography),(1280,720))
 
     def visualize(self):
         cv2.imshow('adapted', self.pix_lines)
@@ -168,11 +197,13 @@ class Frame:
         cv2.waitKey(40000)
 
     def save(self):
-        cv2.imwrite('./output_images/{}_original.jpg'.format(self.i), self.original)
-        cv2.imwrite('./output_images/{}_pix2pix.jpg'.format(self.i), self.pix_lines)
+        # cv2.imwrite('./output_images/{}_original.jpg'.format(self.i), self.original)
+        # cv2.imwrite('./output_images/{}_pix2pix.jpg'.format(self.i), self.pix_lines)
         # cv2.imwrite('./output_images/{}_retrieved.jpg'.format(self.i), self.retrieved_image)
-        cv2.imwrite('./output_images/{}_refined.jpg'.format(self.i), self.refined_retrieved_image)
+        # cv2.imwrite('./output_images/{}_refined.jpg'.format(self.i), self.refined_retrieved_image)
         # cv2.imwrite('./output_images/{}_normalized.jpg'.format(self.i), self.normalized_image)
         # cv2.imwrite('./output_images/{}_unwarped_image.jpg'.format(self.i), self.unwarped_image)
+        cv2.imwrite('./output_images/{}_overlayed_image.jpg'.format(self.i), self.overlayed_image)
+        cv2.imwrite('./output_images/{}_top_view.jpg'.format(self.i), self.top_view)
         
 
