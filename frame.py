@@ -9,6 +9,7 @@ from SCCvSD_Utils.iou_util import IouUtil
 from SCCvSD_Utils.projective_camera import ProjectiveCamera
 
 import playerdetection_maskrcnn as pldec
+import twodvisualisation as twodvis 
 import sys
 
 import torchvision.transforms as transforms
@@ -69,16 +70,10 @@ class Frame:
 
             self.warped_coords.append([hom_cords[0][0]/hom_cords[2][0],hom_cords[1][0]/hom_cords[2][0]])
 
-        # Warped coords belonging to worldcup image 16 (placeholder for faster development)
-        # self.warped_coords = [[92.01287027834677, 28.786941200521106], [94.66302995069726, 67.04521116566309], [95.50522352407108, 60.511763034888595], [97.82874971791972, 42.39573348700747], [91.24491420783876, 56.98150085508616], [113.06896849777085, 38.37172302960884], [90.4490186162751, 62.02393262415963], [80.46709610719846, 44.462272402932655], [88.0790275606092, 19.51399275883541], [97.8791538613156, 35.674698750579715], [81.00846673234102, 38.831727152810615], [78.82873504463414, 26.249622960034305], [87.45029855143562, 36.598743959497696], [99.58510108821706, 33.51209547287334], [78.72732178814238, 20.72997452258794]]
-        
-        # Create an empty top view. Pixsize is arbitrary
-        self.top_view = np.zeros((800,1200,3), np.uint8)
+        twodvis.twodvisualisation(self.warped_coords, self.i, self.template_w, self.template_h)
 
-        # Loop trough all warped coords and place a circle on blank top view.
-        for person in self.warped_coords:
-            cv2.circle(self.top_view, (int(person[0]*10), int(person[1]*10)), 5, (0,0,255), 5)
-        
+        # Warped coords belonging to worldcup image 16 (placeholder for faster development)
+        # self.warped_coords = [[92.01287027834677, 28.786941200521106], [94.66302995069726, 67.04521116566309], [95.50522352407108, 60.511763034888595], [97.82874971791972, 42.39573348700747], [91.24491420783876, 56.98150085508616], [113.06896849777085, 38.37172302960884], [90.4490186162751, 62.02393262415963], [80.46709610719846, 44.462272402932655], [88.0790275606092, 19.51399275883541], [97.8791538613156, 35.674698750579715], [81.00846673234102, 38.831727152810615], [78.82873504463414, 26.249622960034305], [87.45029855143562, 36.598743959497696], [99.58510108821706, 33.51209547287334], [78.72732178814238, 20.72997452258794]
         # Visualize or save the frame:
         # self.visualize()
         self.save()
@@ -204,6 +199,5 @@ class Frame:
         # cv2.imwrite('./output_images/{}_normalized.jpg'.format(self.i), self.normalized_image)
         # cv2.imwrite('./output_images/{}_unwarped_image.jpg'.format(self.i), self.unwarped_image)
         cv2.imwrite('./output_images/{}_overlayed_image.jpg'.format(self.i), self.overlayed_image)
-        cv2.imwrite('./output_images/{}_top_view.jpg'.format(self.i), self.top_view)
         
 

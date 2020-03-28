@@ -5,7 +5,7 @@ import scipy.io as sio
 from functions import CreatePix2PixModel
 
 import sys
-path = './scr'
+path = './src'
 sys.path.append(path)
 
 from frame import Frame
@@ -33,8 +33,8 @@ model_line_index = data['line_segment_index']
 # --- Running the model -----
 
 # Run on single frame
-# img = cv2.imread('./input_footage/picture/16.jpg')
-# Frame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model,1)
+img = cv2.imread('./input_footage/picture/16.jpg')
+Frame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model,1)
 
 # Main video loop
 cap = cv2.VideoCapture('./input_footage/video/540_LQ.mp4')
