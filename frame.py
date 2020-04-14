@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import pyflann
+#mport faiss
 
 from PIL import Image
 
@@ -15,7 +16,7 @@ import sys
 import torchvision.transforms as transforms
 
 class Frame:
-    def __init__(self, frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, iteration):
+    def __init__(self, frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, resolution, iteration):
         # Initialize variables
         self.frame = frame
         self.original = frame
@@ -41,6 +42,9 @@ class Frame:
         # Initialize a flann
         self.flann = pyflann.FLANN()
         self.retrieved_image = None
+
+        self.nnsearcher = nnsearcher
+        self.resolution = resolution
 
         # Player detection, find all person coordinates in the frame
         # ---------------
@@ -135,17 +139,25 @@ class Frame:
         # print(self.features.shape)
 
         # Find the nearest neighbour feature match
-        result, _ = self.flann.nn(self.database_features, self.features, 1, algorithm="kdtree", trees=16, checks=64)
-        retrieved_index = result[0]
-        # print("Retrieved index: "+str(retrieved_index))
+        #result, _ = self.flann.nn(self.database_features, self.features, 1, algorithm="kdtree", trees=16, checks=64)
+        #retrieved_index = result[0]
+        #print("Retrieved index: "+str(retrieved_index))
+        #retrieved_camera_data = self.database_cameras[retrieved_index]
 
         # For faster testing on the 16.jpg image from SCCvSD repo
         # retrieved_index = 46736
 
         # Find the camera that corresponds to the feature set that has been found to match
-        retrieved_camera_data = self.database_cameras[retrieved_index]
 
         # Determine camera variables
+        # Faiss
+
+        _, retrieved_index = self.nnsearcher.search(self.features.copy(), 1)
+        retrieved_index = retrieved_index[:,0][0]
+        print("Retrieved index: "+str(retrieved_index))
+        retrieved_camera_data = self.database_cameras[retrieved_index]
+        print(retrieved_camera_data)
+
         u, v, fl = retrieved_camera_data[0:3]
         rod_rot = retrieved_camera_data[3:6]
         cc = retrieved_camera_data[6:9]
@@ -157,7 +169,7 @@ class Frame:
 
         # Turn the camera to an image with a template
         self.retrieved_image = SyntheticUtil.camera_to_edge_image(retrieved_camera_data, self.model_points, self.model_line_index, im_h=self.frame_height, im_w=self.frame_width, line_width=4)
-        self.pix_lines = cv2.resize(self.pix_lines, (1280, 720), interpolation=cv2.INTER_CUBIC)[:, :, None]
+        self.pix_lines = cv2.resize(self.pix_lines, self.resolution, interpolation=cv2.INTER_CUBIC)[:, :, None]
         
         # Refine using lucas kanade algorithm
         dist_threshold = 50
@@ -169,9 +181,9 @@ class Frame:
         warp = SyntheticUtil.find_transform(retrieved_dist, query_dist)
         
         # Use the homography to refine the found image to validate correctness.
-        self.refined_retrieved_image = cv2.warpPerspective(self.retrieved_image, warp, (1280, 720))
+        self.refined_retrieved_image = cv2.warpPerspective(self.retrieved_image, warp, self.resolution)
 
-        self.original = cv2.resize(self.original,(1280, 720), interpolation=cv2.INTER_CUBIC)
+        self.original = cv2.resize(self.original,self.resolution, interpolation=cv2.INTER_CUBIC)
         print(self.original.shape)
         print(self.refined_retrieved_image.shape)
 
@@ -181,7 +193,7 @@ class Frame:
         self.homography = warp@retrieved_homography
 
         # For validation: warp an image to top view:
-        self.normalized_image = cv2.warpPerspective(self.original, np.linalg.inv(self.homography),(1280,720))
+        self.normalized_image = cv2.warpPerspective(self.original, np.linalg.inv(self.homography),self.resolution)
 
     def visualize(self):
         cv2.imshow('adapted', self.pix_lines)
@@ -192,12 +204,12 @@ class Frame:
         cv2.waitKey(40000)
 
     def save(self):
-        # cv2.imwrite('./output_images/{}_original.jpg'.format(self.i), self.original)
-        # cv2.imwrite('./output_images/{}_pix2pix.jpg'.format(self.i), self.pix_lines)
-        # cv2.imwrite('./output_images/{}_retrieved.jpg'.format(self.i), self.retrieved_image)
-        # cv2.imwrite('./output_images/{}_refined.jpg'.format(self.i), self.refined_retrieved_image)
-        # cv2.imwrite('./output_images/{}_normalized.jpg'.format(self.i), self.normalized_image)
-        # cv2.imwrite('./output_images/{}_unwarped_image.jpg'.format(self.i), self.unwarped_image)
+        cv2.imwrite('./output_images/{}_original.jpg'.format(self.i), self.original)
+        cv2.imwrite('./output_images/{}_pix2pix.jpg'.format(self.i), self.pix_lines)
+        cv2.imwrite('./output_images/{}_retrieved.jpg'.format(self.i), self.retrieved_image)
+        cv2.imwrite('./output_images/{}_refined.jpg'.format(self.i), self.refined_retrieved_image)
+        cv2.imwrite('./output_images/{}_normalized.jpg'.format(self.i), self.normalized_image)
+        #cv2.imwrite('./output_images/{}_unwarped_image.jpg'.format(self.i), self.unwarped_image)
         cv2.imwrite('./output_images/{}_overlayed_image.jpg'.format(self.i), self.overlayed_image)
         
 
