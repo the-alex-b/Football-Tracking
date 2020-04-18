@@ -3,19 +3,19 @@ import numpy as np
 import time
 import scipy.io as sio
 from functions import CreatePix2PixModel
-import faiss
 
 import twodvisualisation as twodvis 
-
+from utilities.ANN import NNSearcher
 
 import sys
 path = './src'
 sys.path.append(path)
 
+import playerdetection_maskrcnn as pldec
 from frame import Frame
 
 # ----- Loading trained models and datasets ----
-
+pldec.config_tf()
 # Create pix2pix model
 pix2pix_model = CreatePix2PixModel()
 # pix2pix_model = 0
@@ -33,10 +33,8 @@ data = sio.loadmat('./PreTrainedNetworks/SCCvSD/worldcup2014.mat')
 model_points = data['points']
 model_line_index = data['line_segment_index']
 
-# Making the SCCvSD edge images searchable
-nnsearcher = faiss.IndexFlatL2(2016)
-nnsearcher.add(database_features.copy())
 
+nnsearcher = NNSearcher(database_features, anntype='flann') ## flann
 
 # --- Running the model -----
 
@@ -58,15 +56,16 @@ while (True):
          break
      frame = cv2.resize(frame, target_resolution, interpolation=cv2.INTER_CUBIC)
      # Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
-     modulo = 2
+     modulo = 1
      if i % modulo == 0:
-     #if i == 200:
          print("----"+str(i)+"----")
-         Frame(frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, target_resolution, i)
+         frame = Frame(frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, i)
+         frame.process()
 
      if cv2.waitKey(1) & 0xFF == ord('q'):
          break
-    
+
+     break 
 
 
 # # Clean and clear
