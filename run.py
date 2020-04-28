@@ -12,6 +12,7 @@ path = './src'
 sys.path.append(path)
 
 import playerdetection_maskrcnn as pldec
+import playertracking as pltrack
 from frame import Frame
 
 # ----- Loading trained models and datasets ----
@@ -44,30 +45,40 @@ nnsearcher = NNSearcher(database_features, anntype='flann') ## flann
 
 # Main video loop
 cap = cv2.VideoCapture('./input_footage/video/1080_HQ.mp4')
+start_time_in_ms = 0 ## where to begin reading the video from
+cap.set(cv2.CAP_PROP_POS_MSEC, start_time_in_ms)
+end_time_in_ms = 500
 input_resolution = (1920,1080)
 target_resolution = (1280,720)
-i = 0 
+i = 0
+# Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
+modulo = 5
+
+frames = []
 
 while (True):
-     i = i + 1
-     print(i)
-     ret, frame = cap.read()
+     ret, fr = cap.read()
      if not ret:
-         break
-     frame = cv2.resize(frame, target_resolution, interpolation=cv2.INTER_CUBIC)
-     # Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
-     modulo = 1
-     if i % modulo == 0:
+         break 
+     if (i % modulo == 0) and (cap.get(cv2.CAP_PROP_POS_MSEC) < end_time_in_ms):
          print("----"+str(i)+"----")
-         frame = Frame(frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, i)
-         frame.process()
-
+         fr = cv2.resize(fr, target_resolution, interpolation=cv2.INTER_CUBIC)
+         fr = Frame(fr, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, i)
+         fr.process()
+         frames.append(fr)
      if cv2.waitKey(1) & 0xFF == ord('q'):
          break
-
-     break 
-
+     i = i + 1
 
 # # Clean and clear
 cap.release()
 cv2.destroyAllWindows()
+
+res = pltrack.track(frames)
+
+for j,fr in enumerate(frames): 
+    twodcoos = fr.calculate_2d_coordinates(fr.final_homography, res[j])
+    twodcoos = np.c_[twodcoos,res[j][:,2]] # add labels
+    twodvis.twodvisualisation(twodcoos, fr.i)
+
+

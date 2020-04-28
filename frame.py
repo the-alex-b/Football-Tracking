@@ -38,12 +38,15 @@ class Frame:
     def process(self): 
         # Player detection, find all person coordinates in the frame
         # ---------------
-        result = pldec.detectplayersbox(self.frame) # returns list of detections over multiple frames
+        result = pldec.detectplayerskeypoints(self.frame)[0] # returns list of detections over multiple frames
         # pldec.save_result(result[0], frame, self.i) # only 1 frame being processed
-        self.playercoos = pldec.findplayerscoos(result[0])
+        #self.detectionfeatures = result['features'] # general detection features 
+        self.playersfeetcoos = pldec.findplayersfeetcoos(result)
+        self.playerstorsocoos = pldec.findplayerstorsocoos(result)
+        self.playerkeypoints = pldec.findplayerkeypointsall(result)
         # ---------------
         # Visualize player coordinates as circles below players:
-        for c in self.playercoos:
+        for c in self.playersfeetcoos:
             cv2.circle(self.original,(int(c[0]), int(c[1])), 5, (0,0,255), 3)
         self.picstosave.append(('original',self.original))
         
@@ -53,11 +56,11 @@ class Frame:
         pix_lines = self.plot_lines_on_image(pix_lines)
         features = self.generate_hog_features(pix_lines)
         pix_lines, retrieved_image, retrieved_homography = self.retrieve_a_camera(pix_lines, features)
-        final_homography = self.refine_camera(pix_lines, retrieved_image, retrieved_homography)
-        twod_coords = self.calculate_2d_coordinates(final_homography)
-        self.create_normalizedview(self.original, final_homography)
+        self.final_homography = self.refine_camera(pix_lines, retrieved_image, retrieved_homography)
+        self.twod_coords = self.calculate_2d_coordinates(self.final_homography, self.playersfeetcoos)
+        self.create_normalizedview(self.original, self.final_homography)
         self.create_overlayedview()
-        twodvis.twodvisualisation(twod_coords, self.i, self.template_w, self.template_h)
+        # twodvis.twodvisualisation(self.twod_coords, self.i)  #---> probably does not belong here
         # Warped coords belonging to worldcup image 16 (placeholder for faster development)
         # self.warped_coords = [[92.01287027834677, 28.786941200521106], [94.66302995069726, 67.04521116566309], [95.50522352407108, 60.511763034888595], [97.82874971791972, 42.39573348700747], [91.24491420783876, 56.98150085508616], [113.06896849777085, 38.37172302960884], [90.4490186162751, 62.02393262415963], [80.46709610719846, 44.462272402932655], [88.0790275606092, 19.51399275883541], [97.8791538613156, 35.674698750579715], [81.00846673234102, 38.831727152810615], [78.82873504463414, 26.249622960034305], [87.45029855143562, 36.598743959497696], [99.58510108821706, 33.51209547287334], [78.72732178814238, 20.72997452258794]
         # Visualize or save the frame:
@@ -65,10 +68,10 @@ class Frame:
         self.save(self.picstosave)
 
 
-    def calculate_2d_coordinates(self, homography): 
+    def calculate_2d_coordinates(self, homography, coos): 
         # Use inverse of the homography to calculate topview coordinates of players
         warped_coords = [] 
-        for c in self.playercoos:
+        for c in coos:
             c_mat = np.array([[c[0]],[c[1]],[1]])
             hom_cords = np.linalg.inv(homography)@c_mat
             warped_coords.append([hom_cords[0][0]/hom_cords[2][0],hom_cords[1][0]/hom_cords[2][0]])

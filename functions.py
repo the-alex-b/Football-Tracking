@@ -16,8 +16,7 @@ from models.models import create_model
 def CreatePix2PixModel():
 # --which_direction AtoB --model two_pix2pix --name soccer_seg_detection_pix2pix --output_nc 1 --dataset_mode aligned --which_model_netG unet_256 --norm batch --how_many 186 --loadSize 256
 
-    opt = TestOptions().parse()
-    # print(opt)
+    opt = TestOptions()#.parse()
     # print("0--")
 
     # Custom stuff that is normally passed on command line
@@ -33,7 +32,7 @@ def CreatePix2PixModel():
     opt.loadSize = 256
     
     # determine if you use GPU
-    # opt.gpu_ids = -1
+    opt.gpu_ids = []
 
     # Default stuff
     opt.nThreads = 1   # test code only supports nThreads = 1
@@ -41,6 +40,19 @@ def CreatePix2PixModel():
     opt.serial_batches = True  # no shuffle
     opt.no_flip = True  # no flip
     opt.continue_train = False
+
+    # Newly added 
+    opt.phase = 'test'
+    opt.resize_or_crop = 'resize_and_crop'
+    opt.isTrain = False
+    opt.checkpoints_dir = './checkpoints'
+    opt.input_nc = 3
+    opt.ndf = 64
+    opt.ngf = 64
+    opt.no_dropout = False
+    opt.init_type = 'normal'
+    opt.which_epoch = 'latest'
+    opt.which_model_netD = 'basic'
 
     # print(opt.dataroot)
 
