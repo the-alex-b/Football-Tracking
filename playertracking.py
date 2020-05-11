@@ -73,14 +73,14 @@ def track(frames):
     frame_idx = 0
     res = [None] * n_det_frames
     #det_centroids = np.mean(results[frame_idx]['keypoints'][...,0:2],axis = 1)
-    det_centroids = frames[frame_idx].playersfeetcoos[...,0:2] 
+    det_centroids = frames[frame_idx].playersneckcoos[...,0:2] 
     res[frame_idx] = np.c_[det_centroids,np.array(range(det_centroids.shape[0]))]
     k_max = det_centroids.shape[0]
 
     while frame_idx < n_det_frames-1:
         frame_idx += 1
         #det_centroids = np.mean(results[frame_idx]['keypoints'][...,0:2],axis = 1)
-        det_centroids = frames[frame_idx].playersfeetcoos[...,0:2]
+        det_centroids = frames[frame_idx].playersneckcoos[...,0:2]
         n_obj = det_centroids.shape[0]
         n_flow = min(max_n_flow,frame_idx)
         opt_flow_centroids = [None] * n_flow
@@ -113,10 +113,8 @@ def track(frames):
         duped = np.where(np.array(n_per_obj) > 1)[0]
         
         for dupe in list(duped):
-        #    query_pts = results[frame_idx]['features'][assignments[dupe],:]
-            query_pts = frames[frame_idx].playerkeypoints[assignments[dupe],:]
-        #    ref_pts = np.vstack(tuple([results[j]['features'][res[j][:,2] == unique_objs[dupe]] for j in range(frame_idx)]))
-            ref_pts = np.vstack(tuple([frames[j].playerkeypoints[res[j][:,2] == unique_objs[dupe]] for j in range(frame_idx)]))
+            query_pts = frames[frame_idx].playergeneralfeatures[assignments[dupe],:]
+            ref_pts = np.vstack(tuple([frames[j].playergeneralfeatures[res[j][:,2] == unique_objs[dupe]] for j in range(frame_idx)]))
             winner = np.argmin(np.min(cosd(query_pts,ref_pts),axis = 1))
             detections_to_reassign = np.delete(assignments[dupe],winner)
             for det in detections_to_reassign:

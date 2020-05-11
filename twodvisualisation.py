@@ -3,31 +3,37 @@ import cv2
 import glob
 import numpy as np
 
-def twodvisualisation(detections,i): 
+def twodvisualisation(detections,labels,i,filename,detection_color=None): # (0,0,0)*len(detections)
 
     path = './input_footage/picture/PitchTemplate.png'
     img = cv2.imread(path,0)
-    text_displacement = 2
+
+    text_displacement = 1
     template_h = 74
     template_w = 115
     
     # rescaling
     scale = 7
     img_resized = cv2.resize(img,dsize=(scale*template_w, scale*template_h), interpolation=cv2.INTER_AREA)
+    # Converting into color image - can't draw color on a gray scale image
+    img_resized = img_resized[:, :, np.newaxis]
+    img_resized = cv2.cvtColor(img_resized,cv2.COLOR_GRAY2RGB) 
     # Loop trough all warped coords and place a circle on blank top view.
-    for person in detections:
-        cv2.circle(img_resized, (int(person[0])*scale, int(person[1])*scale), 5, (0,0,255), 5)
-        if len(person)>2:
-            cv2.putText(img_resized,('{:.0f}'.format(person[2])),
-                    ((int(person[0])+text_displacement)*scale, int((person[1])+text_displacement)*scale),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    0.4,
-                    (0,0,255))
-    save_fig(img_resized, i) 
+    for j,person in enumerate(detections):
+        dcolor = tuple([int(e) for e in tuple(detection_color[j])])
+        cv2.circle(img_resized, (int(person[0])*scale, int(person[1])*scale), 5, dcolor, 5)
+        cv2.putText(img_resized,('{:.0f}'.format(labels[j])),
+                ((int(person[0])+text_displacement)*scale, 
+                int((person[1])+text_displacement)*scale),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (0,0,255),
+                2)
+    save_fig(img_resized, i,filename) 
 
 
-def save_fig(img, i): 
-    cv2.imwrite('./output_images/{}_2visualisation.jpg'.format(i), img)
+def save_fig(img, i, filename): 
+    cv2.imwrite('./output_images/{}_2visualisation_{}.jpg'.format(i,filename), img)
 
 
 def save_vid(): 

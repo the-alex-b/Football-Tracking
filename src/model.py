@@ -932,7 +932,7 @@ def clip_to_window(window, boxes):
     return boxes
 
 
-def refine_detections_graph(rois, probs, deltas, window, config):
+def refine_detections_graph(rois, probs, deltas, window, feature_maps, config):
     """Refine classified proposals and filter overlaps and return final
     detections.
 
@@ -1030,7 +1030,8 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     detections = tf.concat([
         tf.compat.v1.to_float(tf.gather(refined_rois, keep)),
         tf.compat.v1.to_float(tf.gather(class_ids, keep))[..., tf.newaxis],
-        tf.gather(class_scores, keep)[..., tf.newaxis]
+        tf.gather(class_scores, keep)[..., tf.newaxis],
+        tf.gather(feature_maps, keep)
         ], axis=1)
 
 
@@ -1038,7 +1039,7 @@ def refine_detections_graph(rois, probs, deltas, window, config):
     gap = config.DETECTION_MAX_INSTANCES - tf.shape(detections)[0]
     detections = tf.pad(detections, [(0, gap), (0, 0)], "CONSTANT")
 
-    detections = tf.reshape(detections,[config.DETECTION_MAX_INSTANCES,6])
+    detections = tf.reshape(detections,[config.DETECTION_MAX_INSTANCES,6 + config.FPN_CLASSIF_FC_LAYERS_SIZE])
     return detections
 
 
@@ -1063,12 +1064,13 @@ class DetectionLayer(KE.Layer):
         mrcnn_class = inputs[1]
         mrcnn_bbox = inputs[2]
         image_meta = inputs[3]
+        feature_maps = inputs[4]
 
         # Run detection refinement graph on each item in the batch
         _, _, window, _ = parse_image_meta_graph(image_meta)
         outputs = utils.batch_slice(
-            [rois, mrcnn_class, mrcnn_bbox, window],
-            lambda x, y, w, z: refine_detections_graph(x, y,  w, z, self.config),
+            [rois, mrcnn_class, mrcnn_bbox, window, feature_maps],
+            lambda x, y, w, z, f: refine_detections_graph(x, y,  w, z, f, self.config),
             self.config.IMAGES_PER_GPU)
 
         # Reshape output
@@ -1076,7 +1078,7 @@ class DetectionLayer(KE.Layer):
         return outputs
 
     def compute_output_shape(self, input_shape):
-        return (None, self.config.DETECTION_MAX_INSTANCES, 6)#detection
+        return (None, self.config.DETECTION_MAX_INSTANCES, 6 + self.config.FPN_CLASSIF_FC_LAYERS_SIZE)#detection
 
 
 
@@ -1210,7 +1212,7 @@ def fpn_classifier_graph(rois, feature_maps,
     # mrcnn_keypoint_weight_probs = KL.TimeDistributed(KL.Activation("softmax"),
     #                                  name="mrcnn_keypoint_weight_probs")(mrcnn_keypoint_weight_logits)
 
-    return mrcnn_class_logits, mrcnn_probs, mrcnn_bbox
+    return mrcnn_class_logits, mrcnn_probs, mrcnn_bbox, shared
 
 
 def build_fpn_mask_graph(rois, feature_maps,
@@ -2688,7 +2690,7 @@ class MaskRCNN():
 
             # Network Heads
             # TODO: verify that this handles zero padded ROIs
-            mrcnn_class_logits, mrcnn_class, mrcnn_bbox =\
+            mrcnn_class_logits, mrcnn_class, mrcnn_bbox, _ =\
                 fpn_classifier_graph(rois, mrcnn_feature_maps, config.IMAGE_SHAPE,
                                      config.POOL_SIZE, config.NUM_CLASSES)
 
@@ -2750,7 +2752,7 @@ class MaskRCNN():
         else:
             # Network Heads
             # Proposal classifier and BBox regressor heads
-            mrcnn_class_logits, mrcnn_class, mrcnn_bbox =\
+            mrcnn_class_logits, mrcnn_class, mrcnn_bbox, feature_maps =\
                 fpn_classifier_graph(rpn_rois, mrcnn_feature_maps, config.IMAGE_SHAPE,
                                      config.POOL_SIZE, config.NUM_CLASSES)
 
@@ -2759,7 +2761,7 @@ class MaskRCNN():
             #   detections: [batch, num_detections, (y1, x1, y2, x2, class_id, score)] in image coordinates
             #   keypoint_weights: [batch, num_detections, num_keypoints]
             detections = DetectionLayer(config, name="mrcnn_detection")(
-                [rpn_rois, mrcnn_class, mrcnn_bbox,input_image_meta])
+                [rpn_rois, mrcnn_class, mrcnn_bbox,input_image_meta,feature_maps])
 
             # Convert boxes to normalized coordinates
             # TODO: let DetectionLayer return normalized coordinates to avoid
@@ -3120,6 +3122,7 @@ class MaskRCNN():
         boxes = detections[:N, :4]
         class_ids = detections[:N, 4].astype(np.int32)
         scores = detections[:N, 5]
+        features = detections[:N, 6:]
         masks = mrcnn_mask[np.arange(N), :, :, class_ids]
 
         # Compute scale and shift to translate coordinates to image domain.
@@ -3153,7 +3156,7 @@ class MaskRCNN():
         full_masks = np.stack(full_masks, axis=-1)\
             if full_masks else np.empty((0,) + masks.shape[1:3])
 
-        return boxes, class_ids, scores, full_masks
+        return boxes, class_ids, scores, full_masks, features
 
     def unmold_keypoint_detections(self, detections, mrcnn_keypoints, image_shape, window, mrcnn_mask, keypoint_threshold = 0.05):
         """Reformats the detections of one image from the format of the neural
@@ -3182,6 +3185,7 @@ class MaskRCNN():
         boxes = detections[:N, :4]
         class_ids = detections[:N, 4].astype(np.int32)
         scores = detections[:N, 5]
+        features = detections[:N, 6:]
         masks = mrcnn_mask[np.arange(N), :, :, class_ids]
         mrcnn_keypoints = mrcnn_keypoints[:N, :, :]
 
@@ -3207,6 +3211,7 @@ class MaskRCNN():
             boxes = np.delete(boxes, exclude_ix, axis=0)
             class_ids = np.delete(class_ids, exclude_ix, axis=0)
             scores = np.delete(scores, exclude_ix, axis=0)
+            features = np.delete(features, exclude_ix, axis=0)
             mrcnn_keypoints = np.delete(mrcnn_keypoints, exclude_ix, axis=0)
             masks = np.delete(masks, exclude_ix, axis=0)
             N = class_ids.shape[0]
@@ -3227,7 +3232,7 @@ class MaskRCNN():
             if full_masks else np.empty((0,) + masks.shape[1:3])
 
 
-        return boxes, class_ids, scores, keypoints, full_masks
+        return boxes, class_ids, scores, features, keypoints, full_masks
 
     def detect(self, images, verbose=0):
         """Runs the detection pipeline.
@@ -3260,7 +3265,7 @@ class MaskRCNN():
         # Process detections
         results = []
         for i, image in enumerate(images):
-            final_rois, final_class_ids, final_scores, final_masks =\
+            final_rois, final_class_ids, final_scores, final_masks, features =\
                 self.unmold_detections(detections[i], mrcnn_mask[i],
                                        image.shape, windows[i])
             results.append({
@@ -3268,6 +3273,7 @@ class MaskRCNN():
                 "class_ids": final_class_ids,
                 "scores": final_scores,
                 "masks": final_masks,
+                "features": features,
             })
         return results
 
@@ -3317,13 +3323,14 @@ class MaskRCNN():
         # Process detections
         results = []
         for i, image in enumerate(images):
-            final_rois, final_class_ids, final_scores, final_keypoints,final_masks=\
+            final_rois, final_class_ids, final_scores, final_features, final_keypoints,final_masks=\
                 self.unmold_keypoint_detections(detections[i], mrcnn_keypoint_prob[i],
                                        image.shape, windows[i],mrcnn_mask[i],keypoint_threshold = self.config.KEYPOINT_THRESHOLD)
             results.append({
                 "rois": final_rois,
                 "class_ids": final_class_ids,
                 "scores": final_scores,
+                "features": final_features,
                 "keypoints": final_keypoints,
                 "masks": final_masks
             })

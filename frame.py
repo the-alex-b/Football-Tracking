@@ -42,8 +42,10 @@ class Frame:
         # pldec.save_result(result[0], frame, self.i) # only 1 frame being processed
         #self.detectionfeatures = result['features'] # general detection features 
         self.playersfeetcoos = pldec.findplayersfeetcoos(result)
-        self.playerstorsocoos = pldec.findplayerstorsocoos(result)
+        self.playersneckcoos = pldec.findplayersneckcoos(result)
         self.playerkeypoints = pldec.findplayerkeypointsall(result)
+        self.playertorsokeypoints = pldec.findplayerkeypointstorso(result)
+        self.playergeneralfeatures = pldec.findplayergeneralfeatures(result)
         # ---------------
         # Visualize player coordinates as circles below players:
         for c in self.playersfeetcoos:

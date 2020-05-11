@@ -58,14 +58,22 @@ def findplayersfeetcoos(result):
     foot_positions = np.c_[fp,np.ones(fp.shape[0])]
     return foot_positions
 
-def findplayerstorsocoos(result): 
+def findplayersneckcoos(result): 
     tp = np.mean(result['keypoints'][...,[0,1]][:,[0,1],:],axis = 1)[...,0:2]
-    torso_positions = np.c_[tp,np.ones(tp.shape[0])]
-    return torso_positions
+    neck_positions = np.c_[tp,np.ones(tp.shape[0])]
+    return neck_positions
 
 def findplayerkeypointsall(result):
     all_keypoints = result['keypoints']
     return all_keypoints
+
+def findplayergeneralfeatures(result):
+    general_features = result['features']
+    return general_features
+
+def findplayerkeypointstorso(result): 
+    torso_keypoints = result['keypoints'][...,[0,1]][:,[1,2,3,4,5,6,7,8,11],:]
+    return torso_keypoints
 
 def save_result(r, image, i):
     print('saving res')
