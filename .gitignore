@@ -10,6 +10,6 @@ __pychache__
 ExtractPitchLines/*
 ExtractPitchLines
 checkpoints/experiment_name/*
-
+output_images/*
 # input_footage/video/*
 # input_footage/picture/*
