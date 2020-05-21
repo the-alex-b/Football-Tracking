@@ -32,7 +32,7 @@ def CreatePix2PixModel():
     opt.loadSize = 256
     
     # determine if you use GPU
-    opt.gpu_ids = []
+    opt.gpu_ids = [0]
 
     # Default stuff
     opt.nThreads = 1   # test code only supports nThreads = 1
