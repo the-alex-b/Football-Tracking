@@ -13,7 +13,7 @@ from models.models import create_model
 
 """ This is the Pix2Pix model function from the two-gan model. Idealy this gets adapted and worked into this codebase. """
 
-def CreatePix2PixModel():
+def CreatePix2PixModel(gpu):
 # --which_direction AtoB --model two_pix2pix --name soccer_seg_detection_pix2pix --output_nc 1 --dataset_mode aligned --which_model_netG unet_256 --norm batch --how_many 186 --loadSize 256
 
     opt = TestOptions()#.parse()
@@ -32,7 +32,17 @@ def CreatePix2PixModel():
     opt.loadSize = 256
     
     # determine if you use GPU
-    opt.gpu_ids = [0]
+    # Use GPU
+    # opt.gpu_ids = [0]
+    # Use CPU
+    # opt.gpu_ids = []
+
+    if gpu == True:
+        opt.gpu_ids = [0]
+    else:
+        opt.gpu_ids = []
+
+
 
     # Default stuff
     opt.nThreads = 1   # test code only supports nThreads = 1

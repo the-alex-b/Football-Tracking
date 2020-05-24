@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import sys
 from PIL import Image
+import time
 
 from SCCvSD_Utils.synthetic_util import SyntheticUtil
 from SCCvSD_Utils.iou_util import IouUtil
@@ -14,8 +15,16 @@ from utilities.ANN import NNSearcher
 import torchvision.transforms as transforms
 
 class Frame:
-    def __init__(self, frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher:NNSearcher, identifier):
-        # Initialize variables
+    def __init__(self, frame, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher:NNSearcher, identifier, coco_config, coco_model, write_timestamps):
+        # Initialize for writing timestamp
+        self.start_time = time.time()
+        self.write_timestamps = write_timestamps
+
+        # Coco model
+        self.coco_config = coco_config
+        self.coco_model = coco_model
+
+
         self.frame = frame
         self.original = frame
         self.features = None
@@ -35,33 +44,43 @@ class Frame:
         self.picstosave = []
         
 
-    def process(self): 
+    def process(self):
+        self.write_timestamp("Start processing")
         # Player detection, find all person coordinates in the frame
         # ---------------
-        result = pldec.detectplayerskeypoints(self.frame)[0] # returns list of detections over multiple frames
-        # pldec.save_result(result[0], frame, self.i) # only 1 frame being processed
-        #self.detectionfeatures = result['features'] # general detection features 
+        result = pldec.detectplayerskeypoints(self.frame, self.coco_config, self.coco_model)[0] # returns list of detections over multiple frames
+        # # pldec.save_result(result[0], frame, self.i) # only 1 frame being processed
+        # #self.detectionfeatures = result['features'] # general detection features 
         self.playersfeetcoos = pldec.findplayersfeetcoos(result)
         self.playersneckcoos = pldec.findplayersneckcoos(result)
         self.playerkeypoints = pldec.findplayerkeypointsall(result)
         self.playertorsokeypoints = pldec.findplayerkeypointstorso(result)
         self.playergeneralfeatures = pldec.findplayergeneralfeatures(result)
-        # ---------------
-        # Visualize player coordinates as circles below players:
+        # # ---------------
+        # # Visualize player coordinates as circles below players:
         for c in self.playersfeetcoos:
             cv2.circle(self.original,(int(c[0]), int(c[1])), 5, (0,0,255), 3)
         self.picstosave.append(('original',self.original))
         
 
         # Call all functions that extract data from the frame to determine homography
+        self.write_timestamp("Start extraction of pitch lines")
         pix_lines = self.extract_pitch_lines(self.frame, self.pix2pix_model, load_size = 256)
+        self.write_timestamp("Extracted pitch lines")
         pix_lines = self.plot_lines_on_image(pix_lines)
+        self.write_timestamp("Plotted lines on image")
         features = self.generate_hog_features(pix_lines)
+        self.write_timestamp("Generated hog Features")
         pix_lines, retrieved_image, retrieved_homography = self.retrieve_a_camera(pix_lines, features)
+        self.write_timestamp("Retrieved a camera")
         self.final_homography = self.refine_camera(pix_lines, retrieved_image, retrieved_homography)
+        self.write_timestamp("Refined homography")
         self.twod_coords = self.calculate_2d_coordinates(self.final_homography, self.playersfeetcoos)
+        self.write_timestamp("Calculcated coordinates")
         self.create_normalizedview(self.original, self.final_homography)
+        self.write_timestamp("Created normalizedview")
         self.create_overlayedview()
+        self.write_timestamp("Created overlayed view")
         # twodvis.twodvisualisation(self.twod_coords, self.i)  #---> probably does not belong here
         # Warped coords belonging to worldcup image 16 (placeholder for faster development)
         # self.warped_coords = [[92.01287027834677, 28.786941200521106], [94.66302995069726, 67.04521116566309], [95.50522352407108, 60.511763034888595], [97.82874971791972, 42.39573348700747], [91.24491420783876, 56.98150085508616], [113.06896849777085, 38.37172302960884], [90.4490186162751, 62.02393262415963], [80.46709610719846, 44.462272402932655], [88.0790275606092, 19.51399275883541], [97.8791538613156, 35.674698750579715], [81.00846673234102, 38.831727152810615], [78.82873504463414, 26.249622960034305], [87.45029855143562, 36.598743959497696], [99.58510108821706, 33.51209547287334], [78.72732178814238, 20.72997452258794]
@@ -143,7 +162,7 @@ class Frame:
         # Find the camera that corresponds to the feature set that has been found to match
 
         retrieved_index = self.nnsearcher.seek_nn(features)
-        print("Retrieved index: "+str(retrieved_index)) 
+        print("Retrieved camera: "+str(retrieved_index)) 
         retrieved_camera_data = self.database_cameras[retrieved_index]
 
         u, v, fl = retrieved_camera_data[0:3]
@@ -199,4 +218,6 @@ class Frame:
         for e in tosave: 
             cv2.imwrite('./output_images/{}_{}.jpg'.format(self.i, e[0]), e[1])
         
-
+    def write_timestamp(self,description):
+        if self.write_timestamps == True:
+            print("{} : {} seconds have elapsed".format(description, time.time()-self.start_time))

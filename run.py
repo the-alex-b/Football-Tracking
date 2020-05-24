@@ -11,7 +11,7 @@ from scipy.spatial.distance import cdist
 from scipy.spatial import ConvexHull
 from sklearn.cluster import KMeans
 
-
+import os
 import sys
 path = './src'
 sys.path.append(path)
@@ -19,11 +19,14 @@ sys.path.append(path)
 import playerdetection_maskrcnn as pldec
 import playertracking as pltrack
 from frame import Frame
+import model as modellib 
+
+
 
 # ----- Loading trained models and datasets ----
 pldec.config_tf()
 # Create pix2pix model
-pix2pix_model = CreatePix2PixModel()
+pix2pix_model = CreatePix2PixModel(gpu=False)
 # pix2pix_model = 0
 
 # database
@@ -41,6 +44,14 @@ model_line_index = data['line_segment_index']
 
 
 nnsearcher = NNSearcher(database_features, anntype='faiss') ## flann
+
+
+# Coco model
+MODEL_DIR = os.path.join(os.getcwd(), "./PreTrainedNetworks/MaskRCNN/")
+COCO_MODEL_PATH = os.path.join(MODEL_DIR, "mask_rcnn_coco_humanpose.h5")
+coco_config = pldec.InferenceConfig()
+coco_model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=coco_config) 
+coco_model.load_weights(COCO_MODEL_PATH,by_name = True)
 
 # --- Running the model -----
 
@@ -69,10 +80,12 @@ while (True):
          break 
      if (i % modulo == 0) and (cap.get(cv2.CAP_PROP_POS_MSEC) < end_time_in_ms):
          print("----"+str(i)+"----")
+         start_time = time.time()
          fr = cv2.resize(fr, target_resolution, interpolation=cv2.INTER_CUBIC)
-         fr = Frame(fr, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, i)
+         fr = Frame(fr, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, i, coco_config, coco_model, write_timestamps=True)
          fr.process()
          frames.append(fr)
+         print("Analysis of frame {} took {} seconds".format(i, time.time()-start_time))
      if cv2.waitKey(1) & 0xFF == ord('q'):
          break
      i = i + 1

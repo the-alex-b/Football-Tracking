@@ -13,6 +13,8 @@ import visualize
 from model import log
 #from google.colab.patches import cv2_imshow
 from tqdm import tqdm
+import time
+
 
 ROOT_DIR = os.getcwd()
 MODEL_DIR = os.path.join(ROOT_DIR, "./PreTrainedNetworks/MaskRCNN/")
@@ -33,12 +35,19 @@ class InferenceConfig(coco.CocoConfig):
     KEYPOINT_MASK_POOL_SIZE = 7
     FPN_CLASSIF_FC_LAYERS_SIZE = 1024
 
-def detectplayerskeypoints(image):
-    print('starting inference')
-    inference_config = InferenceConfig()
-    model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=inference_config)
-    model.load_weights(COCO_MODEL_PATH,by_name = True) #, exclude=[ "mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"
+def detectplayerskeypoints(image, config, model):
+    # print('starting inference')
+    start_time = time.time()
 
+    # inference_config = InferenceConfig()
+    inference_config = config
+    print("COCO: config is set -- {}".format(time.time()-start_time))
+    model = model
+    # model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=inference_config)
+    # print("COCO: model created -- {}".format(time.time()-start_time))
+    # model.load_weights(COCO_MODEL_PATH,by_name = True) #, exclude=[ "mrcnn_class_logits", "mrcnn_bbox_fc", "mrcnn_bbox", "mrcnn_mask"
+    # print("COCO: weights are loaded -- {}".format(time.time()-start_time))
+    
     #gap = int(frames.shape[0] / (n_det_frames-1))
 
     #frames_to_use = np.uint8(np.linspace(0,gap * (n_det_frames-1),n_det_frames))
@@ -48,8 +57,9 @@ def detectplayerskeypoints(image):
     #images = [images[j] for j in range(n_det_frames)]
     #for j in tqdm(range(n_det_frames)):
     #results[j] = model.detect_keypoint([images[j]], verbose=0)
-    result = model.detect_keypoint([image], verbose=0)
 
+    result = model.detect_keypoint([image], verbose=0)
+    print("COCO: keypoints have been detected -- {}".format(time.time()-start_time))
     #results = [results[j][0] for j in range(n_det_frames)]
     return result
 

@@ -1,0 +1,32 @@
+! git clone https://github.com/the-alex-b/Football-Tracking.git
+
+cd Football-Tracking/
+
+! ./GetTwoGanModelFromGithub.sh
+! ./makepix2pixdirs.sh
+
+# Install missing packages
+!pip install faiss-gpu
+!pip install pyflann-py3
+!pip install pykalman
+
+# Copy all networks files and footage from mounted Google Drive. My Drive should be replaced by the name of your drive.
+# COCO Network
+!cp ../drive/My\ Drive/FootballNetworks/mask_rcnn_coco_humanpose.h5 ./PreTrainedNetworks/MaskRCNN
+
+# SCCvSD
+!cp ../drive/My\ Drive/FootballNetworks/database_camera_feature_HoG.mat ./PreTrainedNetworks/SCCvSD
+!cp ../drive/My\ Drive/FootballNetworks/worldcup2014.mat ./PreTrainedNetworks/SCCvSD
+
+# Linedetection
+!mkdir ./checkpoints/Linedetection
+!cp ../drive/My\ Drive/FootballNetworks/detec_latest_net_G.pth ./checkpoints/Linedetection
+!cp ../drive/My\ Drive/FootballNetworks/seg_latest_net_G.pth ./checkpoints/Linedetection
+
+# Input footage
+!cp ../drive/My\ Drive/FootballNetworks/video/1080_HQ.mp4 ./input_footage/video
+!cp ../drive/My\ Drive/FootballNetworks/video/540_HQ.mp4 ./input_footage/video
+!cp ../drive/My\ Drive/FootballNetworks/video/540_LQ.mp4 ./input_footage/video
+
+# Run the file
+!python run.py
