@@ -43,7 +43,7 @@ model_points = data['points']
 model_line_index = data['line_segment_index']
 
 
-nnsearcher = NNSearcher(database_features, anntype='faiss') ## flann
+nnsearcher = NNSearcher(database_features, anntype='faiss', useGpu=True) ## flann
 # nnsearcher = NNSearcher(database_features, anntype='flann') ## flann
 
 
