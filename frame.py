@@ -160,9 +160,14 @@ class Frame:
         # retrieved_index = 46736
 
         # Find the camera that corresponds to the feature set that has been found to match
+        start_time = time.time()
 
+        # Actual seeking part
         retrieved_index = self.nnsearcher.seek_nn(features)
-        print("Retrieved camera: "+str(retrieved_index)) 
+        print("SCCvSD - Retrieval - Retrieved a camera: {}".format(time.time()-start_time))
+
+
+        print("SCCvSD - Retrieval - Retrieved camera: "+str(retrieved_index)) 
         retrieved_camera_data = self.database_cameras[retrieved_index]
 
         u, v, fl = retrieved_camera_data[0:3]
@@ -172,31 +177,46 @@ class Frame:
 
         # Which homography to use? One corrected for the field or not (seems to mess with visualization, for calculation the first one might be better)
         retrieved_homography = IouUtil.template_to_image_homography_uot(retrieved_camera, self.template_h, self.template_w)
+        print("SCCvSD - Retrieval - Retrieved homography: {}".format(time.time()-start_time))
+
         # retrieved_homography = retrieved_camera.get_homography()
 
         # Turn the camera to an image with a template
         retrieved_image = SyntheticUtil.camera_to_edge_image(retrieved_camera_data, self.model_points, self.model_line_index, im_h=self.resolution[1], im_w=self.resolution[0], line_width=4)
+        print("SCCvSD - Retrieval - Retrieved an image: {}".format(time.time()-start_time))
+
         #self.save('retrieved',retrieved_image)
         self.picstosave.append(('retrieved',retrieved_image))
         
         pix_lines = cv2.resize(pix_lines, self.resolution, interpolation=cv2.INTER_CUBIC)[:, :, None]
+        print("SCCvSD - Retrieval - Determined pix_lines: {}".format(time.time()-start_time))
 
+        print("SCCvSD - Retrieval - Total Time taken: {}".format(time.time()-start_time))
         return pix_lines, retrieved_image, retrieved_homography
 
-    def refine_camera(self, pix_lines, retrieved_image, retrieved_homography):         
+    def refine_camera(self, pix_lines, retrieved_image, retrieved_homography):
+        # TODO: this step should be optimized (if possible), most time is consumed by determining the warp by the opencv find transform algorithm.
+        start_time = time.time()   
         # Refine using lucas kanade algorithm
-        dist_threshold = 50
+        dist_threshold = 150 # Not really sure how this works, lower value leads to higher execution time.
         query_dist = SyntheticUtil.distance_transform(pix_lines)
+        print("SCCvSD - Refinement - did distance transformation on pix lines: {}".format(time.time()-start_time))
         retrieved_dist = SyntheticUtil.distance_transform(retrieved_image)
+        print("SCCvSD - Refinement - did distance transformation on image: {}".format(time.time()-start_time))
         query_dist[query_dist > dist_threshold] = dist_threshold
         retrieved_dist[retrieved_dist > dist_threshold] = dist_threshold
+        print("SCCvSD - Refinement - determined dists: {}".format(time.time()-start_time))
 
         warp = SyntheticUtil.find_transform(retrieved_dist, query_dist)
+        print("SCCvSD - Refinement - found warp: {}".format(time.time()-start_time))
         # This is the homography mapping the field to a top down view
         homography = warp@retrieved_homography
 
         self.refined_retrieved_image = cv2.warpPerspective(retrieved_image, warp, self.resolution)
+        print("SCCvSD - Refinement - warped retrieved image: {}".format(time.time()-start_time))
+        
         self.picstosave.append(('refined',self.refined_retrieved_image))
+        print("SCCvSD - Refinement - Total Time taken: {}".format(time.time()-start_time))
         return homography
         
     def create_overlayedview(self): 

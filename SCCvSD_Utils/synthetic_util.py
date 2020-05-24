@@ -70,6 +70,8 @@ class SyntheticUtil:
             # print('Warning: find transform failed. Set warp as identity')
         return warp
 
+        # Possible optimization: https://stackoverflow.com/questions/45997891/cv2-motion-euclidean-for-the-warp-mode-in-ecc-image-alignment-method
+
     @staticmethod
     def generate_ptz_cameras(cc_statistics,
                              fl_statistics,

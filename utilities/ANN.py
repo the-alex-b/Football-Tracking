@@ -4,6 +4,7 @@ import pyflann
 
 
 class NNSearcher:
+    # TODO: Optimize this searcher, faiss seems to be much quicker, we should experiment with the different methods.
     
     def __init__(self, database_features, anntype='faiss'): 
         assert anntype in ['faiss','flann'] 
@@ -12,6 +13,7 @@ class NNSearcher:
         if anntype == 'faiss': 
             # Making the SCCvSD edge images searchable
             nnsearcher = faiss.IndexFlatL2(2016)
+            # nnsearcher = faiss.IndexFlatIP(2016) this seems to be slower..
             nnsearcher.add(database_features.copy())
         elif anntype == 'flann': 
             # Initialize a flann
