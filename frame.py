@@ -20,9 +20,16 @@ class Frame:
         self.start_time = time.time()
         self.write_timestamps = write_timestamps
 
-        # Coco model
+        # Store all models required for analysis -> Should be saved as a reference since all frame instances become really big now if we want to persist or manipulate later on.. 
         self.coco_config = coco_config
         self.coco_model = coco_model
+        self.database_features = database_features
+        self.database_cameras = database_cameras
+        self.model_points = model_points
+        self.model_line_index = model_line_index
+        self.pix2pix_model = pix2pix_model
+        self.nnsearcher = nnsearcher
+
 
 
         self.frame = frame
@@ -30,17 +37,11 @@ class Frame:
         self.features = None
         self.i = identifier
         self.resolution = (frame.shape[1],frame.shape[0])
-        self.database_features = database_features
-        self.database_cameras = database_cameras
-        self.model_points = model_points
-        self.model_line_index = model_line_index
 
-        self.pix2pix_model = pix2pix_model
 
         self.template_h = 74
         self.template_w = 115
 
-        self.nnsearcher = nnsearcher
         self.picstosave = []
         
 
@@ -86,6 +87,8 @@ class Frame:
         # self.warped_coords = [[92.01287027834677, 28.786941200521106], [94.66302995069726, 67.04521116566309], [95.50522352407108, 60.511763034888595], [97.82874971791972, 42.39573348700747], [91.24491420783876, 56.98150085508616], [113.06896849777085, 38.37172302960884], [90.4490186162751, 62.02393262415963], [80.46709610719846, 44.462272402932655], [88.0790275606092, 19.51399275883541], [97.8791538613156, 35.674698750579715], [81.00846673234102, 38.831727152810615], [78.82873504463414, 26.249622960034305], [87.45029855143562, 36.598743959497696], [99.58510108821706, 33.51209547287334], [78.72732178814238, 20.72997452258794]
         # Visualize or save the frame:
         # self.visualize()
+
+        # Should be asynchronous
         self.save(self.picstosave)
 
 

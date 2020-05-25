@@ -21,7 +21,8 @@ import playertracking as pltrack
 from frame import Frame
 import model as modellib 
 
-
+# Making analyzed frame persistent with pickle
+import pickle  
 
 # ----- Loading trained models and datasets ----
 pldec.config_tf()
@@ -43,7 +44,7 @@ model_points = data['points']
 model_line_index = data['line_segment_index']
 
 
-nnsearcher = NNSearcher(database_features, anntype='faiss', useGpu=True) ## flann
+nnsearcher = NNSearcher(database_features, anntype='faiss', useGpu=False) ## flann
 # nnsearcher = NNSearcher(database_features, anntype='flann') ## flann
 
 
@@ -65,13 +66,13 @@ cap = cv2.VideoCapture('./input_footage/video/1080_HQ.mp4')
 start_time_in_ms = 0 ## where to begin reading the video from
 cap.set(cv2.CAP_PROP_POS_MSEC, start_time_in_ms)
 end_time_in_ms = 10000
-input_resolution = (1920,1080)
+# input_resolution = (1920,1080)
 target_resolution = (1280,720)
 i = 0
 # Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
 modulo = 1
 # Max number of frames that will be processed
-max_number_of_frames = 4
+max_number_of_frames = 3
 
 frames = []
 
@@ -92,7 +93,10 @@ while (True):
      i = i + 1
      if i>=max_number_of_frames : break
 
-
+# Store analyzed frames in pickle for later use
+outfile = open("AnalyzedFrames", 'wb')
+pickle.dump(frames,outfile)
+outfile.close()
 
 # # this step will assign object ids to detections 
 # res = pltrack.track(frames)

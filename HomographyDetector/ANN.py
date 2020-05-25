@@ -4,7 +4,6 @@ import pyflann
 
 
 class NNSearcher:
-    # TODO: Optimize this searcher, faiss seems to be much quicker, we should experiment with the different methods.
     
     def __init__(self, database_features, anntype='faiss', useGpu=False): 
         assert anntype in ['faiss','flann'] 
