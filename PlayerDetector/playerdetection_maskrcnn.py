@@ -6,11 +6,11 @@ import os
 import math
 import skimage.io
 import matplotlib.pyplot as plt
-import coco
+from .src import coco
 #import utils
-import model as modellib
-import visualize
-from model import log
+from .src import model as modellib
+from .src import visualize
+from .src.model import log
 #from google.colab.patches import cv2_imshow
 from tqdm import tqdm
 import time

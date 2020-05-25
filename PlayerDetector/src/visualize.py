@@ -18,7 +18,7 @@ import matplotlib.lines as lines
 from matplotlib.patches import Polygon
 import IPython.display
 import cv2
-import utils
+from . import utils
 
 
 ############################################################
