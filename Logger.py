@@ -11,3 +11,10 @@ class Logger:
 
 
         print("{} -- {} -- {}".format(self.title, elapsedTime, message))
+
+
+        def print_average(self, i):
+        runtime_per_frame = round((time() - self.start_time)/i,3)
+        fps = round((1/runtime_per_frame),3)
+
+        print("Average runtime per frame = {}. This comes down to {} fps".format(runtime_per_frame, fps))

@@ -87,7 +87,8 @@ while (True):
     
         frameLogger.log("Analysis done")
 
-
+logger.log("Analysis done")
+logger.print_average(i)
 
 
 
