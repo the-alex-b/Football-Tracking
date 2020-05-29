@@ -15,10 +15,12 @@ logger.log("Determined GPU availability")
 
 # Initialize detectors
 logger.log("Initializing detectors")
-# homography_detector = HomographyDetector(useGpu=GPU_AVAILABILITY)
+
+homography_detector = HomographyDetector(useGpu=GPU_AVAILABILITY)
 player_detector = PlayerDetector(useGpu=GPU_AVAILABILITY)
+
 # ball detector
-# score detector?
+# score and time detector?
 # is this a football scene detector?
 # More...
 logger.log("Detectors initalized")
@@ -65,19 +67,20 @@ while (True):
         feet_coordinates = player_detector.detect_players(frame)
 
         # Draw circles for sanity check
-        for c in feet_coordinates:
-            cv2.circle(frame,(int(c[0]), int(c[1])), 5, (0,0,255), 3)
+        # for c in feet_coordinates:
+            # cv2.circle(frame,(int(c[0]), int(c[1])), 5, (0,0,255), 3)
 
 
         # Detect homography
-
-
+        homography = homography_detector.detect_homography(frame)
+        print(homography)
+        print(feet_coordinates)
         # Append results to analyzed_frames
 
 
 
         # Visualize
-        cv2.imshow("frame", frame)
+        # cv2.imshow("frame", frame)
         
         # Increase frame counter with 1
         i = i+ 1
