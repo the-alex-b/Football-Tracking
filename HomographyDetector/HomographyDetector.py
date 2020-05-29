@@ -4,10 +4,12 @@ import scipy.io as sio
 from .Pix2PixModel.CreatePix2PixModel import CreatePix2PixModel
 from .ANN import NNSearcher
 import os
+from Logger import Logger
 
 class HomographyDetector:
     def __init__(self, useGpu):
-        print("Initializing homography detector")
+        logger = Logger("Homography Detector Initializer")
+        logger.log("Initializing")
 
         self.pix2pix_model = CreatePix2PixModel(gpu=useGpu)
 
@@ -25,4 +27,4 @@ class HomographyDetector:
 
         # Create a Faiss Searcher
         self.nnsearcher = NNSearcher(self.database_features, anntype='faiss', useGpu=useGpu)
-        print("Homography detector initialized")
+        logger.log("Initialized")
