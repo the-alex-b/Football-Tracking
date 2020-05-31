@@ -1,225 +1,183 @@
 import cv2
-import numpy as np
-import time
-import scipy.io as sio
-from functions import CreatePix2PixModel
+import torch
 
-import twodvisualisation as twodvis 
-from utilities.ANN import NNSearcher
-from utilities.smoothing import smooth_traj_kalman
-from scipy.spatial.distance import cdist
-from scipy.spatial import ConvexHull
-from sklearn.cluster import KMeans
+# Import classes
+from Logger import Logger
 
-import os
-import sys
-path = './src'
-sys.path.append(path)
+# Various helper functions
+from utilities import write_extracted_frames_to_disk, load_extracted_frames_from_disk
 
-import playerdetection_maskrcnn as pldec
-import playertracking as pltrack
-from frame import Frame
-import model as modellib 
+# Initialize the logger
+logger = Logger("Main runtime")
+logger.log("Starting Analysis")
 
-# Making analyzed frame persistent with pickle
-import pickle  
+''' --- Run extraction? ---
+Determine wheter the extraction should be ran or data should be loaded from disk. This should probably be turned into an argument that can be supplied to the main function
+'''
+run_extraction = True
 
-# ----- Loading trained models and datasets ----
-pldec.config_tf()
-# Create pix2pix model
-pix2pix_model = CreatePix2PixModel(gpu=False)
-# pix2pix_model = 0
-
-# database
-# HoG or Deep
-data = sio.loadmat('./PreTrainedNetworks/SCCvSD/database_camera_feature_HoG.mat')
-# data = sio.loadmat('./deepthings/feature_camera_10k.mat')
-
-database_features = data['features']
-database_cameras = data['cameras']
-
-# World Cup soccer template
-data = sio.loadmat('./PreTrainedNetworks/SCCvSD/worldcup2014.mat')
-model_points = data['points']
-model_line_index = data['line_segment_index']
+if run_extraction == True:
+    # Import detectors
+    from HomographyDetector.HomographyDetector import HomographyDetector
+    from PlayerDetector.PlayerDetector import PlayerDetector
+    from ExtractedFrame import ExtractedFrame
 
 
-nnsearcher = NNSearcher(database_features, anntype='faiss', useGpu=False) ## flann
-# nnsearcher = NNSearcher(database_features, anntype='flann') ## flann
+    logger.log("Running extraction step")
+
+    '''--- Determining GPU availabity ---
+
+    This availability is passed on the detectors that are initialized in the next step. Runnign with gpu will be much more efficient and fast ofcourse. Future detectors should take this variable in account so code can be run both with and without GPU.
+
+    '''
+    GPU_AVAILABILITY = torch.cuda.is_available()
+    print("GPU availabiltiy is: {}".format(GPU_AVAILABILITY))
+    logger.log("Determined GPU availability")
 
 
-# Coco model
-MODEL_DIR = os.path.join(os.getcwd(), "./PreTrainedNetworks/MaskRCNN/")
-COCO_MODEL_PATH = os.path.join(MODEL_DIR, "mask_rcnn_coco_humanpose.h5")
-coco_config = pldec.InferenceConfig()
-coco_model = modellib.MaskRCNN(mode="inference", model_dir=MODEL_DIR, config=coco_config) 
-coco_model.load_weights(COCO_MODEL_PATH,by_name = True)
+    ''' --- Initialization of detectors ---
 
-# --- Running the model -----
+    We initialize various detectors required to extract data from the frames. Now we create a homography detector and a player detector. Later on this should be extended with:
 
-# Run on single frame
-#img = cv2.imread('./input_footage/picture/16.jpg')
-#Frame(img, database_features, database_cameras, model_points, model_line_index, pix2pix_model,1)
+    *Ball detector
+    *Score detector
+    *Time detector
+    *Is_this_a_football_scene? detector
+    *And probably a few more :)
 
-# Main video loop
-cap = cv2.VideoCapture('./input_footage/video/1080_HQ.mp4')
-start_time_in_ms = 0 ## where to begin reading the video from
-cap.set(cv2.CAP_PROP_POS_MSEC, start_time_in_ms)
-end_time_in_ms = 10000
-# input_resolution = (1920,1080)
-target_resolution = (1280,720)
-i = 0
-# Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
-modulo = 1
-# Max number of frames that will be processed
-max_number_of_frames = 3
+    All computation should happen on the detector instances so we can easily extract data on a per frame basis.
 
-frames = []
+    '''
+    logger.log("Initializing detectors")
+    homography_detector = HomographyDetector(useGpu=GPU_AVAILABILITY)
+    player_detector = PlayerDetector(useGpu=GPU_AVAILABILITY)
+    # Ball detector
+    # Score detector
+    # Time detector
+    # etc...
 
-while (True):
-     ret, fr = cap.read()
-     if not ret:
-         break 
-     if (i % modulo == 0) and (cap.get(cv2.CAP_PROP_POS_MSEC) < end_time_in_ms):
-         print("----"+str(i)+"----")
-         start_time = time.time()
-         fr = cv2.resize(fr, target_resolution, interpolation=cv2.INTER_CUBIC)
-         fr = Frame(fr, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, i, coco_config, coco_model, write_timestamps=True)
-         fr.process()
-         frames.append(fr)
-         print("Analysis of frame {} took {} seconds".format(i, time.time()-start_time))
-     if cv2.waitKey(1) & 0xFF == ord('q'):
-         break
-     i = i + 1
-     if i>=max_number_of_frames : break
-
-# Store analyzed frames in pickle for later use
-outfile = open("AnalyzedFrames", 'wb')
-pickle.dump(frames,outfile)
-outfile.close()
-
-# # this step will assign object ids to detections 
-# res = pltrack.track(frames)
-
-# # Creating 2D coordinates
-# twodcoos = []
-# for j,fr in enumerate(frames): 
-#     twodcoo = fr.calculate_2d_coordinates(fr.final_homography, fr.playersfeetcoos[:,:2])
-#     twodcoo = np.c_[twodcoo,res[j][:,2]] # add labels
-#     twodcoos.append(twodcoo)
-#     twodvis.twodvisualisation(twodcoo[:,:2],twodcoo[:,2],j,'afterbasictrack',np.zeros((twodcoo.shape[0],3)))
-
-# # at this point, all usefull info has been stored in frame instance and twodcoos
-
-# # obj-indexed, pitch coo, foot positions
-# # fp: list of fr 2-d arrays of shape 1,2 
-# unique_objs = np.unique([item[2] for sublist in twodcoos for item in sublist])
-# fp = []
-# for obj in list(unique_objs):
-#     fp.append([twodcoos[fr][:,:2][twodcoos[fr][:,2] == obj] for fr in range(len(frames))])
-
-# # obj-indexed, boolean, has obj been detected in that particular frame
-# # list of 2-d arrays of shape fr,2 
-# fpp = [None] * len(fp)
-# was_detected = [None] * len(fp)
-# for k in range(len(fp)):
-#   fpp[k] = np.zeros((len(fp[k]),2))
-#   for i in range(len(fp[k])):
-#     if fp[k][i].shape[0] > 0:
-#       if fp[k][i].size == 2:
-#         fpp[k][i,:] = fp[k][i]
-#       if fp[k][i].size > 2:
-#         fpp[k][i,:] = fp[k][i][0,:]
-#   was_detected[k] = ~(fpp[k][:,0] == 0)
-
-# # obj-indexed, frame coo, torso polygon vertices
-# torsos = []
-# for obj in list(unique_objs):
-#     tmp = []
-#     for fr in range(len(frames)):
-#         pts = frames[fr].playertorsokeypoints[twodcoos[fr][:,2] == obj]  
-#         if pts.size != 0:
-#             pts = pts[0,...]
-#             pts = pts[ConvexHull(pts).vertices]  
-#         tmp.append(pts)
-#     torsos.append(tmp)
-
-# # checking if obj is actually on the pitch for most of the time (check for negative pitch coos)
-# # and removing those objs 
-# is_on_field = [np.all(np.mean(fpp[k],axis = 0) > np.array([0,0])) for k in range(len(fp))] 
-# to_keep = list(np.where(is_on_field)[0])
-# fpp = [fpp[i] for i in to_keep]
-# was_detected = [was_detected[i] for i in to_keep]
-# torsos = [torsos[i] for i in to_keep]
-
-# ## determine objects which are likely to be the same via an overlap score (i.e. objects where a new index has been created for a previously detected object)
-# ## need to specify 2 parameters -- min_frac (the minimum fraction of the total number of frames before a detection is called a genuine object)
-# ##                              -- max_overlap (the maximum percentage of total frames in which double detections are allowed to overlap)
-
-# min_frac = 0.25
-# max_overlap = 0.05
-
-# wd = np.array(was_detected) * 1.0
-# tmp = np.tile(np.sum(wd,axis = -1),reps = (len(fpp),1))
-# where_false_dawn = np.array(np.where((np.minimum(1 - np.matmul(wd,wd.T) / tmp.T,1 - np.matmul(wd,wd.T) / tmp)*tmp.T*tmp) > 
-#                             min_frac * (1 - min_frac) * (1 - max_overlap) * len(frames) **2))
-
-# n_pairs = where_false_dawn.shape[1] // 2
-# pairs = where_false_dawn[:,range(n_pairs)]
-# thresh_merge = 15
-# for p in range(n_pairs):
-#   dd = np.min(cdist(fpp[pairs[0,p]][was_detected[pairs[0,p]],:],fpp[pairs[1,p]][was_detected[pairs[1,p]],:]))
-#   if dd < thresh_merge:
-#     fpp[pairs[0,p]] = (fpp[pairs[0,p]] * wd[pairs[0,p],:][:,None] + fpp[pairs[1,p]] * wd[pairs[1,p],:][:,None]) / np.sum(wd[pairs[:,p],:],axis = 0)[:,None]
-#     was_detected[pairs[0,p]] = (was_detected[pairs[0,p]] | was_detected[pairs[1,p]])
-#     fpp[pairs[0,p]][~np.isfinite(fpp[pairs[0,p]])] = 0
-#     fpp[pairs[1,p]] = -100 * np.ones_like(fpp[pairs[1,p]])
-#     tmp = ((wd[pairs[0,p]] + wd[pairs[1,p]]) == 1)
-#     for j in range(len(frames)):
-#       if ~(tmp[j] & (wd[pairs[0,p],j] == 1)):
-#         torsos[pairs[0,p]][j] = np.array([])
-#       if (tmp[j] & (wd[pairs[1,p],j] == 1)):
-#         torsos[pairs[0,p]][j] = torsos[pairs[1,p]][j]
-# fps = [None] * len(fpp)
-# for k in range(len(fpp)):
-#   try:
-#     fps[k] = smooth_traj_kalman(k, fpp, was_detected)[:,[0,2]]
-#   except:
-#     fps[k] = fpp[k].copy()
+    logger.log("Detectors initalized")
 
 
-# for j in range(len(frames)):
-#   twodvis.twodvisualisation([f[j] for f in fps],list(range(len(fps))),j,'aftersmoothing',np.zeros((len(fps),3)))
+    ''' --- Reading the video stream and setting runtime parameters ---
+    Below we open the video and set parameters for analysis. 
+    '''
+    # Select a video to analyze
+    stream = cv2.VideoCapture('./input_footage/video/1080_HQ.mp4')
+
+    # Set start & end boundaries and snip stream
+    start_time_in_ms = 0
+    end_time_in_ms = 10000
+    stream.set(cv2.CAP_PROP_POS_MSEC, start_time_in_ms)
+
+    # Set frame limits
+    skip_frames_modulo = 1
+    max_number_of_frames = 5
+
+    # Create empty array that will hold properties of analyzed frames
+
+    # Create frame counter i
+    i = 0
 
 
-# # determining the affiliation of the detection (teamA, teamB, referee)
-# # coversion to LAB will make the clustering less dependent on the lighting conditions
-# lab_images = [cv2.cvtColor(frames[k].frame,cv2.COLOR_RGB2Lab) for k in range(len(frames))]
-# to_use = [np.sum(was_detected[k]) > 3 for k in range(len(was_detected))]
+    ''' --- Start the video loop ---
+    The code below will loop through all frames that are returned from the video stream. Once the stream finished the loop breaks and analysis will be finished. An array to hold the data from frame extraction is initialized below.
 
-# col_obj = [None] * len(torsos)
-# im_size = frames[0].frame.shape[0:2]
-# for obj in list(np.arange(len(torsos))[to_use]):
-#   for fr in range(len(frames)):
-#     if (torsos[obj][fr].size > 0):
-#       mask = np.zeros(im_size)
-#       cv2.fillPoly(mask, torsos[obj][fr].astype('int32')[None,:,:], 1) # this modifies the mask by eliminating the area inside the polygon
-#       mask = mask.astype(bool)
-#       if col_obj[obj] is None: # fr == min(np.where(was_detected[obj])[0]):
-#         col_obj[obj] = lab_images[fr][mask]
-#       else:
-#         col_obj[obj] = np.r_[col_obj[obj],lab_images[fr][mask]]
+    Each frame is going through the following steps:
 
-# med_cols = np.array([np.median(col_obj[j],axis = 0) for j in list(np.arange(len(torsos))[to_use])])
-# kmeans = KMeans(n_clusters=3, random_state=0).fit(med_cols)
-# cluster_cols = [cv2.cvtColor(kmeans.cluster_centers_[j][None,None,:].astype(np.uint8),cv2.COLOR_Lab2RGB)[0,0,:] for j in range(3)]
+    1. Adaption: Frame is manipulated to match required criteria for further analysis.
 
-# colours = np.array(cluster_cols)[kmeans.labels_]
+    2. Extraction: Data is extracted from the frame -> All relevant information for further analysis should be turned into 'data' and stored on the ExtractedFrame object. These objects are collected in the extractedFrames array.
 
-# res = [f for idx, f in enumerate(fps) if to_use[idx]]
-# for j in range(len(frames)):
-#     twodvis.twodvisualisation([r[j] for r in res],list(range(len(res[j]))),j,'coloring',detection_color=colours)
+    3. Storage of frame
 
-# # Clean and clear
-cap.release()
-cv2.destroyAllWindows()
+
+    '''
+    extractedFrames = []
+
+    while (True):
+        frameLogger = Logger("Frame Loop {}".format(i))
+        ret, frame = stream.read()
+        
+        # Break if end of stream or max number of frames reached
+        if not ret or i>=max_number_of_frames:
+            break
+
+        # Break if stream manually interrupted
+        elif cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+        
+        # Analyze the frame
+        else:
+            ''' --- 1. Adaption Step ----
+            Resize the frame for homography algorithm
+
+            '''
+            frame = cv2.resize(frame, (1280,720), interpolation=cv2.INTER_CUBIC)
+
+            ''' --- 2. Extraction of Data ---
+            In the following steps we invoke the detector objects we have initalized earlier on extract data from the frames in the video stream. The extracted data is then added to the extractedFrames array. This array is used for analysis, smoothing and further calculations. 
+            
+            Furthermore this array can be stored on disk so we can skip the extraction step during future development.
+            '''
+            feet_coordinates = player_detector.detect_players(frame)
+            homography = homography_detector.detect_homography(frame)
+
+        
+            ''' --- 3. Storage ---
+            Below we will create an extractedFrame instance with the data that has been extracted and add it to the extractedFrames array for storage later on.
+            '''
+            extractedFrame = ExtractedFrame(i,homography,feet_coordinates)
+            extractedFrames.append(extractedFrame)
+            
+            
+            
+            
+            # Increase frame counter with 1
+            i = i+ 1
+            frameLogger.log("Analysis done")
+
+    # Close the stream and windows if opened
+    stream.release()
+    cv2.destroyAllWindows()
+
+    ''' --- Write/load extractedFrames to/from disk ---
+    Below we will write the extracted frames to disk.
+
+    '''
+    write_extracted_frames_to_disk(extractedFrames)
+
+else:
+    logger.log("Skipping extraction step and loading extractedFrames from disk")
+    extractedFrames = load_extracted_frames_from_disk()
+
+    # Set i so full run calculations can be made.
+    i = len(extractedFrames)
+
+
+''' --- Smoothing and overall analysis ---
+
+Below we will analyse the data from the extractedFrames. Here we will perform steps like coordinate normalization, smoothing, tracking players over multiple frames etc.
+
+'''
+
+# TODO : Calculate normalized coordinates of detected persons
+for frame in extractedFrames:
+    frame.calculate_normalized_coordinates()
+
+
+
+
+
+
+'''--- Finalize analysis ---
+Log full run statistics
+'''
+logger.log("Analysis done")
+logger.print_average(i)
+
+
+
+
+
+
