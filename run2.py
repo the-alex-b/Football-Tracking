@@ -2,9 +2,6 @@ import cv2
 import torch
 
 # Import classes
-# from HomographyDetector.HomographyDetector import HomographyDetector
-# from PlayerDetector.PlayerDetector import PlayerDetector
-# from ExtractedFrame import ExtractedFrame
 from Logger import Logger
 
 # Various helper functions
@@ -21,6 +18,12 @@ logger.log("Starting Analysis")
 run_extraction = False
 
 if run_extraction == True:
+    # Import the detectors
+    from HomographyDetector.HomographyDetector import HomographyDetector
+    from PlayerDetector.PlayerDetector import PlayerDetector
+    from ExtractedFrame import ExtractedFrame
+
+
     logger.log("Running extraction step")
 
     '''--- Determining GPU availabity ---
