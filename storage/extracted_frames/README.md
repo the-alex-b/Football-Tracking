@@ -1,0 +1,1 @@
+This folder contains extracted frames that are stored to disk.

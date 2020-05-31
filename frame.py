@@ -159,8 +159,6 @@ class Frame:
         return features 
 
     def retrieve_a_camera(self, pix_lines, features):
-        # For faster testing on the 16.jpg image from SCCvSD repo
-        # retrieved_index = 46736
 
         # Find the camera that corresponds to the feature set that has been found to match
         start_time = time.time()
