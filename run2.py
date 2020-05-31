@@ -12,13 +12,12 @@ logger = Logger("Main runtime")
 logger.log("Starting Analysis")
 
 ''' --- Run extraction? ---
-
-
+Determine wheter the extraction should be ran or data should be loaded from disk. This should probably be turned into an argument that can be supplied to the main function
 '''
-run_extraction = False
+run_extraction = True
 
 if run_extraction == True:
-    # Import the detectors
+    # Import detectors
     from HomographyDetector.HomographyDetector import HomographyDetector
     from PlayerDetector.PlayerDetector import PlayerDetector
     from ExtractedFrame import ExtractedFrame
@@ -151,17 +150,20 @@ if run_extraction == True:
 else:
     logger.log("Skipping extraction step and loading extractedFrames from disk")
     extractedFrames = load_extracted_frames_from_disk()
+
+    # Set i so full run calculations can be made.
     i = len(extractedFrames)
 
 
-for frame in extractedFrames:
-    print(frame.homography)
-
 ''' --- Smoothing and overall analysis ---
 
-Below data from the extracted frames is analysed. Here we will perform steps like smoothing, etc.
+Below we will analyse the data from the extractedFrames. Here we will perform steps like coordinate normalization, smoothing, tracking players over multiple frames etc.
+
 '''
 
+# TODO : Calculate normalized coordinates of detected persons
+for frame in extractedFrames:
+    frame.calculate_normalized_coordinates()
 
 
 

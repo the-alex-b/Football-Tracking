@@ -10,3 +10,8 @@ class ExtractedFrame():
             self.homography = extracted_homography
             self.persons = detected_persons
     
+
+    def calculate_normalized_coordinates(self):
+        # TODO: 
+
+        return 0
