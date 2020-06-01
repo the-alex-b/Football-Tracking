@@ -5,7 +5,7 @@ import torch
 from Logger import Logger
 
 # Various helper functions
-from utilities import write_extracted_frames_to_disk, load_extracted_frames_from_disk
+from utilities import write_extracted_frames_to_disk, load_extracted_frames_from_disk, smooth_homographies 
 
 # Initialize the logger
 logger = Logger("Main runtime")
@@ -14,7 +14,7 @@ logger.log("Starting Analysis")
 ''' --- Run extraction? ---
 Determine wheter the extraction should be ran or data should be loaded from disk. This should probably be turned into an argument that can be supplied to the main function
 '''
-run_extraction = True
+run_extraction = False
 
 if run_extraction == True:
     # Importgitdetectors
@@ -149,7 +149,7 @@ if run_extraction == True:
 
 else:
     logger.log("Skipping extraction step and loading extractedFrames from disk")
-    extractedFrames = load_extracted_frames_from_disk()
+    extractedFrames = load_extracted_frames_from_disk('_50')
 
     # Set i so full run calculations can be made.
     i = len(extractedFrames)
@@ -162,12 +162,15 @@ Below we will analyse the data from the extractedFrames. Here we will perform st
 '''
 
 # TODO : Calculate normalized coordinates of detected persons
-for frame in extractedFrames:
-    frame.calculate_normalized_coordinates()
+# for frame in extractedFrames:
+    # frame.calculate_normalized_coordinates()
+
+smoothedExtractedFrames = smooth_homographies(extractedFrames)
 
 
-
-
+for frame in smoothedExtractedFrames:
+    print(frame.homography)
+    print(frame.smoothed_homography)
 
 
 '''--- Finalize analysis ---

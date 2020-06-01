@@ -1,4 +1,8 @@
 import pickle
+from pprint import pprint
+import scipy.signal
+import numpy as np
+
 
 '''
 For now we use pickle to store the extracted frames on disk. Is this optimal? Or should we change it
@@ -12,3 +16,40 @@ def load_extracted_frames_from_disk(added=''):
     storedExtractedFrames= pickle.load(open("./storage/extracted_frames/latest_stored_extracted_frames{}.p".format(added), "rb"))
     
     return storedExtractedFrames
+
+''' Below we unpack all the extracted frames from a scene and smooth the homographies that were found to create a less jittery result.
+
+'''
+def smooth_homographies(extractedFrames, window, poly):
+    
+    unpackedMatrix = {}
+
+    # Initialize a dict with dict that will contain the unpacked arrays
+    for i in range(3):
+            unpackedMatrix[i] = {}
+            for j in range(3):
+                unpackedMatrix[i][j] = []
+    
+
+    # Fill the arrays with unpacked arrays from the original matrix
+    for frame in extractedFrames:
+        h = frame.homography
+        for i in range(3):
+            for j in range(3):
+                # print(h[i][j])
+                unpackedMatrix[i][j].append(h[i][j])
+    
+    # Smoothen the different arrays
+    for i in range(3):
+        for j in range(3):
+            unpackedMatrix[i][j] = scipy.signal.savgol_filter(unpackedMatrix[i][j], window, poly)
+
+    # Put the smoothed homographies back in the extractedFrames object
+    for i in range(len(extractedFrames)):
+        extractedFrames[i].smoothed_homography = np.array([
+            [unpackedMatrix[0][0][i], unpackedMatrix[0][1][i], unpackedMatrix[0][2][i]],
+            [unpackedMatrix[1][0][i], unpackedMatrix[1][1][i], unpackedMatrix[1][2][i]],
+            [unpackedMatrix[2][0][i], unpackedMatrix[2][1][i], unpackedMatrix[2][2][i]]
+        ])
+    
+    return extractedFrames
