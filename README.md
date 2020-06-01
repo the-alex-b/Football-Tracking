@@ -29,7 +29,14 @@
 Extra (should be fixed but seems to be necessary to get this working right now):
 * Open ./ExtractPitchLines/options/base_options.py, remove required flag from --dataroot argument & set --gpu-ids flag to default '-1'(when not using gpu)
 * Folder ./ExtractPitchLines/datasets should contain a folder name soccer_seg_detecion with test, train_phase_1, train_phase_2 & val folders (pix2pix requirement.)
-
+* Installing pycocotools from the environment.yml might fail. Following steps were working as described here 
+  https://github.com/matterport/Mask_RCNN/issues/6
+	* make sure cython is installed
+	* git clone https://github.com/pdollar/coco.git
+	* cd coco/PythonAPI
+	* make
+	* sudo make install
+	* sudo python setup.py install
 
 ### Relevant repositories
 
