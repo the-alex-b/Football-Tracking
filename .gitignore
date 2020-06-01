@@ -11,5 +11,7 @@ ExtractPitchLines/*
 ExtractPitchLines
 checkpoints/experiment_name/*
 output_images/*
+experiments.py
+*.p
 # input_footage/video/*
 # input_footage/picture/*

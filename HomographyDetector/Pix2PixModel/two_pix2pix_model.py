@@ -99,26 +99,27 @@ class TwoPix2PixModel:
 
     def test(self):
         # forces outputs to not require gradients
-        self.real_A = Variable(self.input_A, volatile=True)
-        self.fake_B = self.seg_netG(self.real_A)
-        fake_B = (self.fake_B + 1.0)/2.0
-        input_A = (self.real_A + 1.0)/2.0
-        self.fake_C = (fake_B * input_A) * 2.0 - 1
-        """
-        fake_B = self.fake_B.data
-        input_A = self.input_A   
+        with torch.no_grad():
+            self.real_A = Variable(self.input_A)
+            self.fake_B = self.seg_netG(self.real_A)
+            fake_B = (self.fake_B + 1.0)/2.0
+            input_A = (self.real_A + 1.0)/2.0
+            self.fake_C = (fake_B * input_A) * 2.0 - 1
+            """
+            fake_B = self.fake_B.data
+            input_A = self.input_A   
 
-        # composite image for detection GAN
-        fake_B = (fake_B + 1.0)/2.0  # --> [0, 1]
-        input_A = (input_A + 1.0)/2.0 # --> [0, 1]
-        masked_A = torch.mul(input_A, fake_B)
-        masked_A = masked_A * 2.0 - 1   # normalize to [-1, 1]
+            # composite image for detection GAN
+            fake_B = (fake_B + 1.0)/2.0  # --> [0, 1]
+            input_A = (input_A + 1.0)/2.0 # --> [0, 1]
+            masked_A = torch.mul(input_A, fake_B)
+            masked_A = masked_A * 2.0 - 1   # normalize to [-1, 1]
 
-        masked_A = Variable(masked_A, volatile = True) # for debug
-        self.masked_A = masked_A
-        """
-        self.fake_D = self.detec_netG(self.fake_C)
-        self.real_D = Variable(self.input_B, volatile=True)
+            masked_A = Variable(masked_A, volatile = True) # for debug
+            self.masked_A = masked_A
+            """
+            self.fake_D = self.detec_netG(self.fake_C)
+            self.real_D = Variable(self.input_B)
 
     def get_image_paths(self):
         assert not self.isTrain

@@ -8,7 +8,7 @@ def write_extracted_frames_to_disk(extractedFrames):
 
 
 
-def load_extracted_frames_from_disk():
-    storedExtractedFrames= pickle.load(open("./storage/extracted_frames/latest_stored_extracted_frames.p", "rb"))
+def load_extracted_frames_from_disk(added=''):
+    storedExtractedFrames= pickle.load(open("./storage/extracted_frames/latest_stored_extracted_frames{}.p".format(added), "rb"))
     
     return storedExtractedFrames

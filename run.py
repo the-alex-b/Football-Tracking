@@ -17,7 +17,7 @@ Determine wheter the extraction should be ran or data should be loaded from disk
 run_extraction = True
 
 if run_extraction == True:
-    # Import detectors
+    # Importgitdetectors
     from HomographyDetector.HomographyDetector import HomographyDetector
     from PlayerDetector.PlayerDetector import PlayerDetector
     from ExtractedFrame import ExtractedFrame
