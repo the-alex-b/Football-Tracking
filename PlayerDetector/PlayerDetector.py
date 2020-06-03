@@ -35,4 +35,4 @@ class PlayerDetector:
 
         detectionLogger.log("Completed")
 
-        return playersfeetcoos
+        return playersfeetcoos, detection_result

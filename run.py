@@ -14,7 +14,7 @@ logger.log("Starting Analysis")
 ''' --- Run extraction? ---
 Determine wheter the extraction should be ran or data should be loaded from disk. This should probably be turned into an argument that can be supplied to the main function
 '''
-run_extraction = False
+run_extraction = True
 
 if run_extraction == True:
     # Importgitdetectors
@@ -72,7 +72,7 @@ if run_extraction == True:
 
     # Set frame limits
     skip_frames_modulo = 1
-    max_number_of_frames = 5
+    max_number_of_frames = 600
 
     # Create empty array that will hold properties of analyzed frames
 
@@ -120,14 +120,16 @@ if run_extraction == True:
             
             Furthermore this array can be stored on disk so we can skip the extraction step during future development.
             '''
-            feet_coordinates = player_detector.detect_players(frame)
+            feet_coordinates, full_detection = player_detector.detect_players(frame)
+
+
             homography = homography_detector.detect_homography(frame)
 
         
             ''' --- 3. Storage ---
             Below we will create an extractedFrame instance with the data that has been extracted and add it to the extractedFrames array for storage later on.
             '''
-            extractedFrame = ExtractedFrame(i,homography,feet_coordinates)
+            extractedFrame = ExtractedFrame(i,homography,feet_coordinates, full_detection)
             extractedFrames.append(extractedFrame)
             
             

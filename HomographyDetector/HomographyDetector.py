@@ -136,7 +136,7 @@ class HomographyDetector:
          # TODO: this step should be optimized (if possible), most time is consumed by determining the warp by the opencv find transform algorithm.
 
         # Refine using lucas kanade algorithm
-        dist_threshold = 150 # Not really sure how this works, lower value leads to higher execution time.
+        dist_threshold = 50 # Not really sure how this works, lower value leads to higher execution time.
         query_dist = SyntheticUtil.distance_transform(pix_lines)
         retrieved_dist = SyntheticUtil.distance_transform(retrieved_image)
         query_dist[query_dist > dist_threshold] = dist_threshold
