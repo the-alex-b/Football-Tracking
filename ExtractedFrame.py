@@ -1,4 +1,4 @@
-
+import numpy as np
 
 
 class ExtractedFrame():
@@ -11,7 +11,13 @@ class ExtractedFrame():
             self.persons = detected_persons
     
 
-    def calculate_normalized_coordinates(self):
-        # TODO: 
+    def calculate_normalized_player_coordinates(self):
+        # Use inverse of the homography to calculate topview coordinates of players
+        self.warped_feet_coordinates = [] 
+        
+        for c in self.persons:
+            c_mat = np.array([[c[0]],[c[1]],[1]])
+            hom_cords = np.linalg.inv(self.homography)@c_mat
+            self.warped_feet_coordinates.append([hom_cords[0][0]/hom_cords[2][0],hom_cords[1][0]/hom_cords[2][0]])
 
-        return 0
+    

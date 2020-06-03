@@ -165,7 +165,7 @@ Below we will analyse the data from the extractedFrames. Here we will perform st
 # for frame in extractedFrames:
     # frame.calculate_normalized_coordinates()
 
-smoothedExtractedFrames = smooth_homographies(extractedFrames)
+smoothedExtractedFrames = smooth_homographies(extractedFrames, 51, 3)
 
 
 for frame in smoothedExtractedFrames:

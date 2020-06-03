@@ -18,7 +18,7 @@ def load_extracted_frames_from_disk(added=''):
     return storedExtractedFrames
 
 ''' Below we unpack all the extracted frames from a scene and smooth the homographies that were found to create a less jittery result.
-
+To smooth we use an savgol_filter with parameters window and poly. It is still unclear wether this smoothing is optimal and what parameters should be used. --> Move to extracted frame object!!!
 '''
 def smooth_homographies(extractedFrames, window, poly):
     
