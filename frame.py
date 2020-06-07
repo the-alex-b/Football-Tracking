@@ -198,7 +198,7 @@ class Frame:
         # TODO: this step should be optimized (if possible), most time is consumed by determining the warp by the opencv find transform algorithm.
         start_time = time.time()   
         # Refine using lucas kanade algorithm
-        dist_threshold = 150 # Not really sure how this works, lower value leads to higher execution time.
+        dist_threshold = 50 # Not really sure how this works, lower value leads to higher execution time.
         query_dist = SyntheticUtil.distance_transform(pix_lines)
         print("SCCvSD - Refinement - did distance transformation on pix lines: {}".format(time.time()-start_time))
         retrieved_dist = SyntheticUtil.distance_transform(retrieved_image)

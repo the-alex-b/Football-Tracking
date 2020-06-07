@@ -36,25 +36,48 @@ def save_fig(img, i, filename):
     cv2.imwrite('./output_images/{}_2visualisation_{}.jpg'.format(i,filename), img)
 
 
-def save_vid(): 
+def save_vid(modulo=1): 
 
     img_array = []
-    for filename in sorted(glob.glob('./output_images/*_2visualisation.jpg'),key = lambda x : int(x.split('_')[1].split('/')[1])):
-        img = cv2.imread(filename)
-        img2 = cv2.imread(filename.replace('2visualisation','original'))
-        img_new = np.zeros((img.shape[0],img2.shape[1],img.shape[2]))
-        img_new = np.uint8(img_new)
-        img_new[:img.shape[0],:img.shape[1],:img.shape[2]] = img
-        print(img_new.shape)
-        print(img2.shape)
 
-        res = np.vstack((img_new,img2))
+    for filename in sorted(glob.glob('./output_images/*2visualisation_coloring.jpg'),key = lambda x : int(x.split('_')[1].split('/')[1])):
+        
+        idx = int(filename.split('_')[1].split('/')[1])
+
+
+    for i in range(idx): # quick max idx
+        
+        img = cv2.imread('./output_images/' + str(i) + '_2visualisation_coloring.jpg')
+        img2 = cv2.imread('./output_images/' + str(i*modulo) + '_overlayed_image.jpg')
+        img3 = cv2.imread('./output_images/' + str(i) + '_2visualisation_afterbasictrack.jpg')
+
+        img13 = np.hstack((img,img3))
+
+        # rescale - width (nr cols) should be the same 
+        #img_new = np.zeros((img13.shape[0],img3.shape[1],img13.shape[2]))
+        #img_new = np.uint8(img_new)
+        #img_new[:img13.shape[0],:img13.shape[1],:img13.shape[2]] = img13
+
+        try: 
+            img_new = cv2.resize(img2, (img13.shape[1],img13.shape[0]), interpolation=cv2.INTER_CUBIC)
+        except: 
+            img_new = img13
+
+        #img_new3 = np.zeros((img3.shape[0],img2.shape[1],img3.shape[2]))
+        #img_new3 = np.uint8(img_new3)
+        #img_new3[:img3.shape[0],:img3.shape[1],:img3.shape[2]] = img3
+        #print(img_new.shape)
+        #print(img13.shape)
+        res = np.vstack((img13,img_new))
+        x = res.shape[1] - 200
+        y = res.shape[0] - 200
+        res = cv2.putText(res,str(i*modulo), (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, (128,128,0))
         height, width, layers = res.shape
         size = (width,height)
         img_array.append(res)
-        print(res.shape)
+        #print(res.shape)
     
-    out = cv2.VideoWriter('2visualisation.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)    
+    out = cv2.VideoWriter('colored_visualisation.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)    
     
     for i in range(len(img_array)):
         out.write(img_array[i])

@@ -64,14 +64,14 @@ coco_model.load_weights(COCO_MODEL_PATH,by_name = True)
 cap = cv2.VideoCapture('./input_footage/video/1080_HQ.mp4')
 start_time_in_ms = 0 ## where to begin reading the video from
 cap.set(cv2.CAP_PROP_POS_MSEC, start_time_in_ms)
-end_time_in_ms = 10000
+end_time_in_ms = 20000
 input_resolution = (1920,1080)
 target_resolution = (1280,720)
 i = 0
 # Modulo i is used to skip frames. If you want to analyze full video set modulo to 1
-modulo = 1
+modulo = 5
 # Max number of frames that will be processed
-max_number_of_frames = 100
+max_number_of_frames = 500
 
 frames = []
 
@@ -154,6 +154,7 @@ torsos = [torsos[i] for i in to_keep]
 
 min_frac = 0.25
 max_overlap = 0.05
+observation_uncertainty = 10
 
 wd = np.array(was_detected) * 1.0
 tmp = np.tile(np.sum(wd,axis = -1),reps = (len(fpp),1))
@@ -179,8 +180,13 @@ for p in range(n_pairs):
 fps = [None] * len(fpp)
 for k in range(len(fpp)):
   try:
-    fps[k] = smooth_traj_kalman(k, fpp, was_detected)[:,[0,2]]
-  except:
+    measurements = np.ma.array(fpp[k])
+    measurements[~was_detected[k]] = np.ma.masked
+    initial_state_x = measurements[was_detected[k], 0]
+    initial_state_y = measurements[was_detected[k], 1]
+    fps[k] = smooth_traj_kalman(measurements, initial_state_x, initial_state_y, observation_uncertainty = observation_uncertainty)[:,[0,2]] # 0, 2 Depends on the shape of the observation_matrix
+  except Exception as e: 
+    print(e)
     fps[k] = fpp[k].copy()
 
 
@@ -191,24 +197,25 @@ for j in range(len(frames)):
 # determining the affiliation of the detection (teamA, teamB, referee)
 # coversion to LAB will make the clustering less dependent on the lighting conditions
 lab_images = [cv2.cvtColor(frames[k].frame,cv2.COLOR_RGB2Lab) for k in range(len(frames))]
-to_use = [np.sum(was_detected[k]) > 3 for k in range(len(was_detected))]
+to_use = [np.sum(was_detected[k]) > (min_frac/3)*len(was_detected) for k in range(len(was_detected))]
 
 col_obj = [None] * len(torsos)
 im_size = frames[0].frame.shape[0:2]
 for obj in list(np.arange(len(torsos))[to_use]):
-for fr in range(len(frames)):
-    if (torsos[obj][fr].size > 0):
-    mask = np.zeros(im_size)
-    cv2.fillPoly(mask, torsos[obj][fr].astype('int32')[None,:,:], 1) # this modifies the mask by eliminating the area inside the polygon
-    mask = mask.astype(bool)
-    if col_obj[obj] is None: # fr == min(np.where(was_detected[obj])[0]):
-        col_obj[obj] = lab_images[fr][mask]
-    else:
-        col_obj[obj] = np.r_[col_obj[obj],lab_images[fr][mask]]
+    for fr in range(len(frames)):
+       if (torsos[obj][fr].size > 0):
+          mask = np.zeros(im_size)
+          cv2.fillPoly(mask, torsos[obj][fr].astype('int32')[None,:,:], 1) # this modifies the mask by eliminating the area inside the polygon
+          mask = mask.astype(bool)
+          if col_obj[obj] is None: # fr == min(np.where(was_detected[obj])[0]):
+             col_obj[obj] = lab_images[fr][mask]
+          else:
+             col_obj[obj] = np.r_[col_obj[obj],lab_images[fr][mask]]
 
+n_clusters=3
 med_cols = np.array([np.median(col_obj[j],axis = 0) for j in list(np.arange(len(torsos))[to_use])])
-kmeans = KMeans(n_clusters=3, random_state=0).fit(med_cols)
-cluster_cols = [cv2.cvtColor(kmeans.cluster_centers_[j][None,None,:].astype(np.uint8),cv2.COLOR_Lab2RGB)[0,0,:] for j in range(3)]
+kmeans = KMeans(n_clusters=n_clusters, random_state=0).fit(med_cols)
+cluster_cols = [cv2.cvtColor(kmeans.cluster_centers_[j][None,None,:].astype(np.uint8),cv2.COLOR_Lab2RGB)[0,0,:] for j in range(n_clusters)]
 
 colours = np.array(cluster_cols)[kmeans.labels_]
 
