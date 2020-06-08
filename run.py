@@ -3,6 +3,7 @@ import torch
 
 # Import classes
 from Logger import Logger
+from Person import Person
 
 # Various helper functions
 from utilities import write_extracted_frames_to_disk, load_extracted_frames_from_disk, smooth_homographies 
@@ -14,7 +15,7 @@ logger.log("Starting Analysis")
 ''' --- Run extraction? ---
 Determine wheter the extraction should be ran or data should be loaded from disk. This should probably be turned into an argument that can be supplied to the main function
 '''
-run_extraction = True
+run_extraction = False
 
 if run_extraction == True:
     # Importgitdetectors
@@ -120,7 +121,7 @@ if run_extraction == True:
             
             Furthermore this array can be stored on disk so we can skip the extraction step during future development.
             '''
-            feet_coordinates, full_detection = player_detector.detect_players(frame)
+            feet_coordinates, detections = player_detector.detect_players(frame)
 
 
             homography = homography_detector.detect_homography(frame)
@@ -129,7 +130,7 @@ if run_extraction == True:
             ''' --- 3. Storage ---
             Below we will create an extractedFrame instance with the data that has been extracted and add it to the extractedFrames array for storage later on.
             '''
-            extractedFrame = ExtractedFrame(i,homography,feet_coordinates, full_detection)
+            extractedFrame = ExtractedFrame(i,homography,feet_coordinates,detections)
             extractedFrames.append(extractedFrame)
             
             
@@ -151,10 +152,11 @@ if run_extraction == True:
 
 else:
     logger.log("Skipping extraction step and loading extractedFrames from disk")
-    extractedFrames = load_extracted_frames_from_disk('_50')
+    extractedFrames = load_extracted_frames_from_disk('_fullrun_fullkeypoints')
 
     # Set i so full run calculations can be made.
     i = len(extractedFrames)
+    print(i)
 
 
 ''' --- Smoothing and overall analysis ---
@@ -165,14 +167,100 @@ Below we will analyse the data from the extractedFrames. Here we will perform st
 
 # TODO : Calculate normalized coordinates of detected persons
 # for frame in extractedFrames:
-    # frame.calculate_normalized_coordinates()
+#     frame.calculate_normalized_coordinates()
 
 smoothedExtractedFrames = smooth_homographies(extractedFrames, 51, 3)
 
 
-for frame in smoothedExtractedFrames:
-    print(frame.homography)
-    print(frame.smoothed_homography)
+# Experimental visualization stuff -- Need to clean, apply, improve etc.
+
+# Get the pitch template
+path = './input_footage/picture/PitchTemplate.png'
+img = cv2.imread(path, 1)
+
+# We open a new stream that will allow us to visualize all tracked players on the original video for reference
+stream2 = cv2.VideoCapture('./input_footage/video/1080_HQ.mp4')
+
+# Initialize an empty array that will collect all of our identified players
+tracked_persons = []
+
+# Initalize an empty array to hold our images for saving
+img_array = []
+
+# initialize frame counter
+j = 0
+
+# Loop through the video stream same way we did before
+while (True):
+    ret, frame = stream2.read()
+    
+    # Break if end of stream or max number of frames reached
+    if not ret:
+        break
+
+    # Break if stream manually interrupted
+    elif cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+    
+    # Analyze the frame
+    else:
+        ''' --- 1. Adaption Step ----
+        Resize the frame for homography algorithm
+
+        '''
+        frame = cv2.resize(frame, (1280,720), interpolation=cv2.INTER_CUBIC)
+        template_h = 74
+        template_w = 115
+        scale = 1
+        img_resized = cv2.resize(img,dsize=(scale*template_w, scale*template_h), interpolation=cv2.INTER_AREA)
+        
+        warpedImg  = cv2.warpPerspective(img_resized, smoothedExtractedFrames[j].smoothed_homography, (1280,720))
+
+        #  add the original footage to the overlay
+        overlay = cv2.addWeighted(frame,0.5,warpedImg,0.3,0)
+
+        # Detect all
+        # for kp in extractedFramesSmoothed[i].detections:
+        #     person = Person(kp)
+        #     person.update_keypoints(kp)
+        
+        options = smoothedExtractedFrames[j].detections
+
+        for person in tracked_persons:
+            person.update_homography(smoothedExtractedFrames[j].smoothed_homography)
+
+            if len(options) > 0:
+                options = person.find_best_next_keypoints(j, options, overlay)
+                # overlay = person.draw_on_image(overlay)
+                # No more options available, tracking seems to be lost..
+            else:
+                person.tracking_is_lost()
+
+        # Create new Person for all detections that havent been matched
+        for o in options:
+            tp = Person(i, o, overlay, smoothedExtractedFrames[j].smoothed_homography)
+            overlay = tp.draw_on_image(overlay)
+            tracked_persons.append(tp)
+
+        cv2.imshow('overlay', overlay)
+        # cv2.imshow('normalized', normalized)
+        
+        # print(len(tracked_persons))
+
+        j = j + 1
+
+        img_array.append(overlay)
+
+# Uncomment if you want to save a video
+# print("Saving video")
+# size = (img_array[0].shape[1], img_array[0].shape[0])
+# print(size)
+# out = cv2.VideoWriter('./output_images/video/tracked_players_color.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)    
+
+# for img in img_array:
+#     out.write(img)
+# out.release()
+
 
 
 '''--- Finalize analysis ---

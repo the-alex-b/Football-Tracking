@@ -5,11 +5,12 @@ class ExtractedFrame():
     '''
     This class contains all data that is extracted from a frame,
     '''
-    def __init__(self, frame_number, extracted_homography, feet_coordinates, detections):
+    def __init__(self, frame_number, extracted_homography, feet, detections):
             self.frame_number = frame_number
             self.homography = extracted_homography
-            self.feet_coordinates = feet_coordinates
+            self.feet_coordinates = feet
             self.detections = detections
+            self.smoothed_homography = None
     
 
     def calculate_normalized_player_coordinates(self):
