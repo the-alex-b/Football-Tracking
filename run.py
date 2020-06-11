@@ -82,6 +82,7 @@ while (True):
      if (i % modulo == 0) and (cap.get(cv2.CAP_PROP_POS_MSEC) < end_time_in_ms):
          print("----"+str(i)+"----")
          start_time = time.time()
+         fr = fr[:,:,::-1]
          fr = cv2.resize(fr, target_resolution, interpolation=cv2.INTER_CUBIC)
          fr = Frame(fr, database_features, database_cameras, model_points, model_line_index, pix2pix_model, nnsearcher, i, coco_config, coco_model, write_timestamps=True)
          fr.process()
