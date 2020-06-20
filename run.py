@@ -13,7 +13,8 @@ logger = Logger("Main runtime")
 logger.log("Starting Analysis")
 
 ''' --- Run extraction? ---
-Determine wheter the extraction should be ran or data should be loaded from disk. This should probably be turned into an argument that can be supplied to the main function
+Determine wheter the extraction should be ran or data should be loaded from disk. 
+This should probably be turned into an argument that can be supplied to the main function
 '''
 run_extraction = False
 
@@ -161,7 +162,8 @@ else:
 
 ''' --- Smoothing and overall analysis ---
 
-Below we will analyse the data from the extractedFrames. Here we will perform steps like coordinate normalization, smoothing, tracking players over multiple frames etc.
+Below we will analyse the data from the extractedFrames. 
+Here we will perform steps like coordinate normalization, smoothing, tracking players over multiple frames etc.
 
 '''
 
@@ -186,6 +188,7 @@ tracked_persons = []
 
 # Initalize an empty array to hold our images for saving
 img_array = []
+frames = []
 
 # initialize frame counter
 j = 0
@@ -209,6 +212,7 @@ while (True):
 
         '''
         frame = cv2.resize(frame, (1280,720), interpolation=cv2.INTER_CUBIC)
+        frames.append(frame)
         template_h = 74
         template_w = 115
         scale = 1
@@ -242,7 +246,7 @@ while (True):
             overlay = tp.draw_on_image(overlay)
             tracked_persons.append(tp)
 
-        cv2.imshow('overlay', overlay)
+        # cv2.imshow('overlay', overlay)
         # cv2.imshow('normalized', normalized)
         
         # print(len(tracked_persons))
@@ -255,7 +259,7 @@ while (True):
 # print("Saving video")
 # size = (img_array[0].shape[1], img_array[0].shape[0])
 # print(size)
-# out = cv2.VideoWriter('./output_images/video/tracked_players_color.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)    
+# out = cv2.VideoWriter('./output_videos/tracked_players_color.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)    
 
 # for img in img_array:
 #     out.write(img)

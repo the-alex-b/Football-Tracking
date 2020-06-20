@@ -4,6 +4,67 @@ from sklearn.metrics.pairwise import euclidean_distances as euc
 from sklearn.metrics.pairwise import cosine_distances as cosd
 import numpy as np
 import cv2
+from enum import Enum
+from typing import List
+
+
+class Direction(Enum):
+    FWD = -1
+    BWD = 1
+
+def get_opticalflow_points(
+    tar_frame: int, 
+    frames : List[np.ndarray], 
+    points_to_track,
+    direction: Direction = Direction.FWD,
+    nskip=8
+) -> np.ndarray:
+    """
+    tar_frame : target frame - index of the frames object
+    frames : (non-target) frames to use for the optical flow
+    points_to_track : which points should be tracked throughout the frame
+    direction : optical flow can use the future frames (direction == 'bwd') or the past frames (direction == 'fwd')
+    nskip : positive integer : how many frames should be considered for the optical flow 
+
+    Example call: 
+    p1 = get_opticalflow_points(
+        100, 
+        frames,
+        tracked_persons[0].old_keypoints,
+        Direction.FWD, 
+        nskip=3
+    )
+    """
+    
+    
+    f_o_b = direction.value
+    
+    # LK parameters
+    # see https://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_video/py_lucas_kanade/py_lucas_kanade.html
+    lk_params = dict( winSize  = (15,15),
+                    maxLevel = 2,
+                    criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+    
+    
+    # points to track 
+    p0 = np.float32(points_to_track[tar_frame + nskip * f_o_b][:,None,:2])
+    
+    # starting point (furthest away from the target frame)
+    old_gray = cv2.cvtColor(frames[tar_frame + nskip * f_o_b],cv2.COLOR_RGB2GRAY)
+    
+    for j in range(nskip):
+        frame = frames[-f_o_b*(j + 1) + (tar_frame + nskip * f_o_b)] # increase j : get closer to the target frame in steps of 1
+        frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # calculate optical flow
+        p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
+        # resetting starting point
+        old_gray = frame_gray.copy()
+        # resetting tracked point
+        p0 = p1
+
+    return p1.squeeze()
+
+
 
 def get_flow_keypoints(tar_frame,direction,nskip,frames,gap=1):
   if direction == 'fwd':
