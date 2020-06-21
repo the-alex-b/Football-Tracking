@@ -266,6 +266,30 @@ while (True):
 # out.release()
 
 
+## Now that the tracking has been done based on the frames, additional steps can be performed, e.g. the smoothing of the 2d trajectories
+
+smoothed_trajs = []
+for player_idx in range(len(tracked_persons)):
+    # convert to 2d coordinates
+    twod_trajs = {}
+    for i in tracked_persons[player_idx].old_homographies.keys(): 
+        Hinv = np.linalg.inv(tracked_persons[player_idx].old_homographies[i])
+        twod_traj = tracked_persons[player_idx].old_coordinates[i]
+        twod_trajs[i] = np.matmul(twod_traj,Hinv.T)[:2]/np.matmul(twod_traj,Hinv.T)[2]
+    # reformat
+    xs = []
+    ys = []
+    for e in twod_trajs.keys(): 
+        xs.append(twod_trajs[e][0])
+        ys.append(twod_trajs[e][1])
+
+    measurements = list(zip(xs,ys))
+    initial_state_x = list(zip(xs,ys))[0][0]
+    initial_state_y = list(zip(xs,ys))[0][1]
+    # smooth 
+    smoothed_trajs.append(smooth_traj_kalman(measurements, initial_state_x, initial_state_y, observation_uncertainty=100)[:,[0,2]]) # 0, 2 Depends on the shape of the observation_matrix
+
+
 
 '''--- Finalize analysis ---
 Log full run statistics

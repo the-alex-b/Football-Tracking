@@ -1,16 +1,14 @@
 import numpy as np 
-
 from pykalman import KalmanFilter
 
 
-def smooth_traj_kalman(k, fpp, was_detected):
-  measurements = np.ma.array(fpp[k])
-  measurements[~was_detected[k]] = np.ma.masked
+def smooth_traj_kalman(measurements, initial_state_x, initial_state_y, observation_uncertainty=10):
 
-  initial_state_mean = [measurements[was_detected[k], 0][0],
-                        0,
-                        measurements[was_detected[k], 1][0],
-                        0]
+  initial_state_mean = [initial_state_x,
+                        0,  # x velocity
+                        initial_state_y,
+                        0   # y velocity
+                        ]
 
   transition_matrix = [[1, 1, 0, 0],
                        [0, 1, 0, 0],
@@ -29,9 +27,9 @@ def smooth_traj_kalman(k, fpp, was_detected):
   kf2 = KalmanFilter(transition_matrices = transition_matrix,
                     observation_matrices = observation_matrix,
                     initial_state_mean = initial_state_mean,
-                    observation_covariance = 10*kf1.observation_covariance,
+                    observation_covariance = observation_uncertainty*kf1.observation_covariance,
                     em_vars=['transition_covariance', 'initial_state_covariance'])
 
   kf2 = kf2.em(measurements, n_iter=5)
   (smoothed_state_means, smoothed_state_covariances)  = kf2.smooth(measurements)
-  return smoothed_state_means                          
+  return smoothed_state_means                   
