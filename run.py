@@ -235,13 +235,14 @@ while (True):
 
             if len(options) > 0:
                 options = person.find_best_next_keypoints(j, options, overlay)
-                # overlay = person.draw_on_image(overlay)
+                overlay = person.draw_on_image(overlay)
                 # No more options available, tracking seems to be lost..
             else:
                 person.tracking_is_lost()
 
         # Create new Person for all detections that havent been matched
-        for o in options:
+        # Only look at the detections that have at least 1 3rd coordinate non-zero
+        for o in  [o for o in options if np.sum(o[:,2]) > 0 ]:
             tp = Person(i, o, overlay, smoothedExtractedFrames[j].smoothed_homography)
             overlay = tp.draw_on_image(overlay)
             tracked_persons.append(tp)

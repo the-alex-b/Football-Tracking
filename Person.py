@@ -3,16 +3,17 @@ import numpy as np
 from random import randrange
 
 class Person:
-    def __init__(self,i, keypoints, overlay, homography):
+    _COUNTER = 0 
+    def __init__(self, i, keypoints, overlay, homography):
+        self.id = Person._COUNTER
+        Person._COUNTER += 1
+
         self.kp = keypoints
         self.color = (randrange(0, 255),randrange(0, 255),randrange(0, 255))
         self.line_thickness = 2
-
-        self.homography = homography
-
-
         self.i = i
-        self.center_of_gravity = (0,0)
+        self.homography = homography
+        self.center_of_gravity = (0,0) 
 
         self.old_homographies = {}
         self.old_keypoints = {}
@@ -119,6 +120,7 @@ class Person:
 
             image = cv2.circle(image, (cog_x,cog_y), 4, self.color,2)
 
+
             # draw joints
             for point in self.kp:
                 coords = (int(point[0]), int(point[1]))
@@ -156,6 +158,17 @@ class Person:
             image = cv2.line(image, (self.kp[2][0], self.kp[2][1]), (self.kp[3][0], self.kp[3][1]), self.color, self.line_thickness)
             image = cv2.line(image, (self.kp[3][0], self.kp[3][1]), (self.kp[4][0], self.kp[4][1]), self.color, self.line_thickness)
             image = cv2.line(image, (self.kp[4][0], self.kp[4][1]), (self.kp[1][0], self.kp[1][1]), self.color, self.line_thickness)
+
+            cv2.putText(    
+                image,
+                str(self.id),
+                tuple(e+5 for e in self.center_of_gravity),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.3,
+                (255,0,0))
+
+
+
 
         return image
 
