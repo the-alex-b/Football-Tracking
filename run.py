@@ -4,6 +4,8 @@ import torch
 # Import classes
 from Logger import Logger
 from Person import Person
+from Team import Team
+from TeamDetector import TeamDetector
 
 # Various helper functions
 from utilities import write_extracted_frames_to_disk, load_extracted_frames_from_disk, smooth_homographies 
@@ -269,6 +271,18 @@ while (True):
 
 ## Now that the tracking has been done based on the frames, additional steps can be performed, e.g. the smoothing of the 2d trajectories
 
+# Team detection 
+teams = [
+    Team(0, 'Ajax', np.array([255, 102, 0])) # red 
+    ,Team(1, 'Getafe', np.array([0, 102, 255])) # blue 
+    ,Team(2, 'Referees/Keepers', np.array([255, 255, 0])) # yellow
+]
+td = TeamDetector(teams)
+detected_teams = td.get_teams(tracked_persons)
+
+###
+
+# smoothing of the 2d trajectories
 smoothed_trajs = []
 for player_idx in range(len(tracked_persons)):
     # convert to 2d coordinates

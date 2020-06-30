@@ -9,7 +9,8 @@ class Person:
         Person._COUNTER += 1
 
         self.kp = keypoints
-        self.color = (randrange(0, 255),randrange(0, 255),randrange(0, 255))
+        self.color = (255,255,255)
+        self.colors = (255,255,255)
         self.line_thickness = 2
         self.i = i
         self.homography = homography
@@ -24,9 +25,10 @@ class Person:
         self.allowed_missed_matches = 10
         self.missed_matches = 0
         self.tracking_lost = False
+
+        self.team = None
         
         # TODO:
-        self.team = "A" #A, B or REF
         self.normalized_coordinates = None
 
 
@@ -102,10 +104,15 @@ class Person:
         average_color = torso.mean(1).mean(0)
 
         # Set color to the average color of the torso
-        self.color = average_color
+        # Instead of updating at every frame, create a rolling average of the color
+        self.colors = np.vstack([self.colors, average_color])
+        self.color = np.mean(self.colors, axis=0)
 
     def update_homography(self,homography):
         self.homography = homography
+
+    def set_team(self, team): 
+        self.team = team
 
 
     def draw_on_image(self, image):
@@ -167,6 +174,13 @@ class Person:
                 0.3,
                 (255,0,0))
 
+            #cv2.putText(    
+             #   image,
+             #   str(self.team.getname()),
+             #   tuple(e+10 for e in self.center_of_gravity),
+            #  cv2.FONT_HERSHEY_SIMPLEX,
+            #    0.3,
+             #    (255,0,0))
 
 
 
