@@ -6,15 +6,19 @@ class Person:
     _COUNTER = 0 
     def __init__(self, i, keypoints, overlay, homography):
         self.id = Person._COUNTER
-        Person._COUNTER += 1
+        # Person._COUNTER += 1
 
         self.kp = keypoints
         self.color = (255,255,255)
         self.colors = (255,255,255)
         self.line_thickness = 2
         self.i = i
+
         self.homography = homography
+        self.inverse_homography =  np.linalg.inv(homography)
+        
         self.center_of_gravity = (0,0) 
+        self.normalized_center_of_gravity = (0,0)
 
         self.old_homographies = {}
         self.old_keypoints = {}
@@ -22,18 +26,23 @@ class Person:
         
         # Tracking variables
         self.cutoff_point = 8000
-        self.allowed_missed_matches = 10
+        self.allowed_missed_matches = 5
         self.missed_matches = 0
         self.tracking_lost = False
 
         self.team = None
+
+        self.on_field = None
         
         # TODO:
         self.normalized_coordinates = None
 
 
         # Detect color of shirt
+        self.determine_normalized_center_of_gravity()
+        self.check_if_on_field()
         self.detect_shirt_color(overlay)
+
 
     def find_best_next_keypoints(self, i, options, overlay):
         self.i = i
@@ -86,6 +95,7 @@ class Person:
 
         # Update keypoints
         self.kp = new_keypoints
+        self.determine_normalized_center_of_gravity()
 
     def tracking_is_lost(self):
         self.tracking_lost = True    
@@ -115,17 +125,56 @@ class Person:
         self.team = team
 
 
+    def determine_normalized_center_of_gravity(self):
+        self.center_of_gravity = (int((self.kp[15][0] + self.kp[16][0])/2), int((self.kp[15][1] + self.kp[16][1])/2))
+        
+        homogenous_coordinates = [self.center_of_gravity[0], self.center_of_gravity[1], 1]
+        transformed = self.inverse_homography@homogenous_coordinates        
+        normalized_coordinates = transformed[:2]/transformed[2]
+
+        self.normalized_center_of_gravity = (normalized_coordinates[0], normalized_coordinates[1])
+        # print(self.normalized_center_of_gravity)
+
+
+
+    def check_if_on_field(self):
+        if 0-5 < self.normalized_center_of_gravity[0] < 115+5 and 0-5 < self.normalized_center_of_gravity[1] < 74+5:
+            # print('true detection')
+            self.on_field = True
+            
+            # If player on field, increase counter
+            Person._COUNTER += 1
+        else:
+            # print("false detection")
+            self.on_field = False
+
+
+
     def draw_on_image(self, image):
-        # Only draw of tracking is not lost
-
-        if self.tracking_lost == False:
+        # Only draw of tracking is not los  t
+        # print(self.on_field)
+        if self.tracking_lost == False and self.on_field == True :    
             # draw center of gravity (middle between feet)
-            cog_x = int((self.kp[15][0] + self.kp[16][0])/2)
-            cog_y = int((self.kp[15][1] + self.kp[16][1])/2)
+            # cog_x = int((self.kp[15][0] + self.kp[16][0])/2)
+            # cog_y = int((self.kp[15][1] + self.kp[16][1])/2)
 
-            self.center_of_gravity = (cog_x,cog_y)
+            # self.center_of_gravity = (cog_x,cog_y)
 
-            image = cv2.circle(image, (cog_x,cog_y), 4, self.color,2)
+            # # Detect the 'top down' coordinates. If these are off-field set self.false_detection = True
+            # temp_c = [cog_x, cog_y, 1]
+            # Hinv = np.linalg.inv(self.homography)
+            # # print(Hinv)
+
+            # normalized_cog = Hinv@temp_c
+            # coords = normalized_cog[:2]/normalized_cog[2]
+
+            # if 0 < coords[0] < 115 or 0 < coords[1] < 74:
+            #     print('true detection')
+            #     print(coords)
+            #     return image
+            # self.normalized_center_of_gravity = 
+
+            image = cv2.circle(image, self.center_of_gravity, 4, self.color,2)
 
 
             # draw joints

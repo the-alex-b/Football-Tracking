@@ -1,5 +1,6 @@
 import cv2
 import torch
+import numpy as np
 
 # Import classes
 from Logger import Logger
@@ -8,7 +9,7 @@ from Team import Team
 from TeamDetector import TeamDetector
 
 # Various helper functions
-from utilities import write_extracted_frames_to_disk, load_extracted_frames_from_disk, smooth_homographies 
+from utilities import write_extracted_frames_to_disk, load_extracted_frames_from_disk, smooth_homographies, smooth_traj_kalman 
 
 # Initialize the logger
 logger = Logger("Main runtime")
@@ -245,14 +246,21 @@ while (True):
         # Create new Person for all detections that havent been matched
         # Only look at the detections that have at least 1 3rd coordinate non-zero
         for o in  [o for o in options if np.sum(o[:,2]) > 0 ]:
+        # for o in options:
             tp = Person(i, o, overlay, smoothedExtractedFrames[j].smoothed_homography)
             overlay = tp.draw_on_image(overlay)
-            tracked_persons.append(tp)
 
-        # cv2.imshow('overlay', overlay)
+
+            # Only append if the Person is on field (and not random detection in the stands)
+            if tp.on_field == True:
+                tracked_persons.append(tp)
+
+        
+
+        cv2.imshow('overlay', overlay)
         # cv2.imshow('normalized', normalized)
         
-        # print(len(tracked_persons))
+        print(len(tracked_persons))
 
         j = j + 1
 
@@ -279,6 +287,7 @@ teams = [
 ]
 td = TeamDetector(teams)
 detected_teams = td.get_teams(tracked_persons)
+
 
 ###
 
