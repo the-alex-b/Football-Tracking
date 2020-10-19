@@ -22,9 +22,12 @@ This should probably be turned into an argument that can be supplied to the main
 run_extraction = False
 
 if run_extraction == True:
-    # Importgitdetectors
+    # Importdetectors
     from HomographyDetector.HomographyDetector import HomographyDetector
     from PlayerDetector.PlayerDetector import PlayerDetector
+    from BallExtractor.BallExtractor import BallExtractor
+
+    
     from ExtractedFrame import ExtractedFrame
 
 
@@ -56,6 +59,7 @@ if run_extraction == True:
     logger.log("Initializing detectors")
     homography_detector = HomographyDetector(useGpu=GPU_AVAILABILITY)
     player_detector = PlayerDetector(useGpu=GPU_AVAILABILITY)
+    yolo_detector = BallExtractor()
     # Ball detector
     # Score detector
     # Time detector
@@ -127,14 +131,15 @@ if run_extraction == True:
             '''
             feet_coordinates, detections = player_detector.detect_players(frame)
 
-
             homography = homography_detector.detect_homography(frame)
+
+            yolo = yolo_detector.detect(frame)
 
         
             ''' --- 3. Storage ---
             Below we will create an extractedFrame instance with the data that has been extracted and add it to the extractedFrames array for storage later on.
             '''
-            extractedFrame = ExtractedFrame(i,homography,feet_coordinates,detections)
+            extractedFrame = ExtractedFrame(i,homography,feet_coordinates,detections, yolo)
             extractedFrames.append(extractedFrame)
             
             

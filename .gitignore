@@ -13,5 +13,10 @@ checkpoints/experiment_name/*
 output_images/*
 experiments*.py
 *.p
+ballextraction.py
+
+
+
+
 # input_footage/video/*
 # input_footage/picture/*

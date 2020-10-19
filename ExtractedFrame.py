@@ -5,11 +5,12 @@ class ExtractedFrame():
     '''
     This class contains all data that is extracted from a frame,
     '''
-    def __init__(self, frame_number, extracted_homography, feet, detections):
+    def __init__(self, frame_number, extracted_homography, feet, detections, yolo_detections):
             self.frame_number = frame_number
             self.homography = extracted_homography
             self.feet_coordinates = feet
             self.detections = detections
+            self.yolo_detections = yolo_detections
             self.smoothed_homography = None
     
 
