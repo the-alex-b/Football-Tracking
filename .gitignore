@@ -16,6 +16,9 @@ experiments*.py
 ballextraction.py
 
 
+# YOLO
+*.so
+*.a 
 
 
 # input_footage/video/*
