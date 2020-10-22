@@ -40,7 +40,7 @@ class BallExtractor:
         # Make sure this can be loaded everywhere
         self.path = os.path.abspath(os.path.join(os.path.dirname( __file__ )))
 
-        self.lib = CDLL(self.path+"/YoloV3Darknet/libdarknet.so", RTLD_GLOBAL)
+        self.lib = CDLL(self.path+"/YoloDarknet/libdarknet.so", RTLD_GLOBAL)
         self.lib.network_width.argtypes = [c_void_p]
         self.lib.network_width.restype = c_int
         self.lib.network_height.argtypes = [c_void_p]
@@ -111,9 +111,9 @@ class BallExtractor:
 
 
         # Load Net, Weights and Meta
-        config_path = str(self.path +'/YoloV3Darknet/cfg/yolov3.cfg').encode()
-        weights_path = str(self.path + '/YoloV3Darknet/yolov3.weights').encode()
-        meta_path = str(self.path + '/YoloV3Darknet/cfg/coco.data').encode()
+        config_path = str(self.path +'/YoloDarknet/cfg/yolov3.cfg').encode()
+        weights_path = str(self.path + '/YoloDarknet/yolov3.weights').encode()
+        meta_path = str(self.path + '/YoloDarknet/cfg/coco.data').encode()
 
         
         self.net = self.load_net(config_path, weights_path ,0)
