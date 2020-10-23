@@ -141,17 +141,16 @@ class BallExtractor:
         
         num = c_int(0)
         pnum = pointer(num)
-        print("Start predicting")
+
         self.predict_image(self.net, im)
 
-        print("Find detections")
+
         dets = self.get_network_boxes(self.net, im.w, im.h, thresh, hier_thresh, None, 0, pnum)
         num = pnum[0]
 
-        print("Do stuff")
-        if (nms): self.do_nms_obj(dets, num, self.meta.classes, nms);
 
-        print("Start sorting")
+        if (nms): self.do_nms_obj(dets, num, self.meta.classes, nms);
+)
         res = []
         for j in range(num):
             for i in range(self.meta.classes):
@@ -161,13 +160,10 @@ class BallExtractor:
         res = sorted(res, key=lambda x: -x[1])
         print(res)
 
-        print("Start free image")
         # self.free_image(im)
-        print("Start free detection")
-        print(dets)
-        print(num)
+
         self.free_detections(dets, num)
-        print("Detections freed")
+
         return res
 
 
