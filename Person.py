@@ -26,7 +26,7 @@ class Person:
         
         # Tracking variables
         self.cutoff_point = 8000
-        self.allowed_missed_matches = 5
+        self.allowed_missed_matches = 1
         self.missed_matches = 0
         self.tracking_lost = False
 

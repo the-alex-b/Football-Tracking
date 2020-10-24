@@ -161,7 +161,8 @@ if run_extraction == True:
 
 else:
     logger.log("Skipping extraction step and loading extractedFrames from disk")
-    extractedFrames = load_extracted_frames_from_disk('_fullrun_fullkeypoints')
+    # extractedFrames = load_extracted_frames_from_disk('_fullrun_fullkeypoints')
+    extractedFrames = load_extracted_frames_from_disk('_yolo')
 
     # Set i so full run calculations can be made.
     i = len(extractedFrames)
@@ -229,7 +230,7 @@ while (True):
         warpedImg  = cv2.warpPerspective(img_resized, smoothedExtractedFrames[j].smoothed_homography, (1280,720))
 
         #  add the original footage to the overlay
-        overlay = cv2.addWeighted(frame,0.5,warpedImg,0.3,0)
+        overlay = cv2.addWeighted(frame,1,warpedImg,0.3,0)
 
         # Detect all
         # for kp in extractedFramesSmoothed[i].detections:
@@ -261,62 +262,82 @@ while (True):
                 tracked_persons.append(tp)
 
         
+        # Visualize YOLO detections (balls and players)
+        #  -- output structure: <object-class> <x_center> <y_center> <width> <height>
+
+        detections = smoothedExtractedFrames[j].yolo_detections
+        for detection in detections:
+            detection_type = detection[0].decode()
+
+            # Draw the ball
+            if detection_type == 'sports ball':
+                overlay = cv2.circle(overlay, (int(detection[2][0]),int(detection[2][1])), radius=4, color=(0, 0, 255), thickness=-1) 
+                
+            # Draw the person bounding boxes
+            if detection_type == 'person':
+                # needs top left corner and bottom right
+                top_left = (int(detection[2][0] - 0.5*(detection[2][2])),int(detection[2][1] + 0.5*(detection[2][3])))
+                bottom_right = (int(detection[2][0] + 0.5*(detection[2][2])),int(detection[2][1] - 0.5*(detection[2][3])))
+                
+                # Check if not extreme size (faulty detection)
+                if detection[2][2] < 100 or detection[2][3] < 100:
+                    overlay = cv2.rectangle(overlay,top_left,bottom_right,(0,255,0),3)
 
         cv2.imshow('overlay', overlay)
         # cv2.imshow('normalized', normalized)
         
-        print(len(tracked_persons))
+        # print(len(tracked_persons))
 
         j = j + 1
 
         img_array.append(overlay)
 
 # Uncomment if you want to save a video
-# print("Saving video")
-# size = (img_array[0].shape[1], img_array[0].shape[0])
-# print(size)
-# out = cv2.VideoWriter('./output_videos/tracked_players_color.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)    
+print("Saving video")
+size = (img_array[0].shape[1], img_array[0].shape[0])
+print(size)
+out = cv2.VideoWriter('./output_images/video/tracking+yolo.avi',cv2.VideoWriter_fourcc(*'DIVX'), 15, size)    
 
-# for img in img_array:
-#     out.write(img)
-# out.release()
+for img in img_array:
+    out.write(img)
+out.release()
 
 
 ## Now that the tracking has been done based on the frames, additional steps can be performed, e.g. the smoothing of the 2d trajectories
 
 # Team detection 
-teams = [
-    Team(0, 'Ajax', np.array([255, 102, 0])) # red 
-    ,Team(1, 'Getafe', np.array([0, 102, 255])) # blue 
-    ,Team(2, 'Referees/Keepers', np.array([255, 255, 0])) # yellow
-]
-td = TeamDetector(teams)
-detected_teams = td.get_teams(tracked_persons)
+# teams = [
+#     Team(0, 'Ajax', np.array([255, 102, 0])) # red 
+#     ,Team(1, 'Getafe', np.array([0, 102, 255])) # blue 
+#     ,Team(2, 'Referees/Keepers', np.array([255, 255, 0])) # yellow
+# ]
+# td = TeamDetector(teams)
+# detected_teams = td.get_teams(tracked_persons)
 
 
-###
+# ###
 
-# smoothing of the 2d trajectories
-smoothed_trajs = []
-for player_idx in range(len(tracked_persons)):
-    # convert to 2d coordinates
-    twod_trajs = {}
-    for i in tracked_persons[player_idx].old_homographies.keys(): 
-        Hinv = np.linalg.inv(tracked_persons[player_idx].old_homographies[i])
-        twod_traj = tracked_persons[player_idx].old_coordinates[i]
-        twod_trajs[i] = np.matmul(twod_traj,Hinv.T)[:2]/np.matmul(twod_traj,Hinv.T)[2]
-    # reformat
-    xs = []
-    ys = []
-    for e in twod_trajs.keys(): 
-        xs.append(twod_trajs[e][0])
-        ys.append(twod_trajs[e][1])
+# # smoothing of the 2d trajectories
+# smoothed_trajs = []
+# for player_idx in range(len(tracked_persons)):
+#     # convert to 2d coordinates
+#     twod_trajs = {}
+#     for i in tracked_persons[player_idx].old_homographies.keys(): 
+#         Hinv = np.linalg.inv(tracked_persons[player_idx].old_homographies[i])
+#         twod_traj = tracked_persons[player_idx].old_coordinates[i]
+#         twod_trajs[i] = np.matmul(twod_traj,Hinv.T)[:2]/np.matmul(twod_traj,Hinv.T)[2]
+#     # reformat
+#     xs = []
+#     ys = []
+#     for e in twod_trajs.keys(): 
+#         xs.append(twod_trajs[e][0])
+#         ys.append(twod_trajs[e][1])
 
-    measurements = list(zip(xs,ys))
-    initial_state_x = list(zip(xs,ys))[0][0]
-    initial_state_y = list(zip(xs,ys))[0][1]
-    # smooth 
-    smoothed_trajs.append(smooth_traj_kalman(measurements, initial_state_x, initial_state_y, observation_uncertainty=100)[:,[0,2]]) # 0, 2 Depends on the shape of the observation_matrix
+#     measurements = list(zip(xs,ys))
+#     initial_state_x = list(zip(xs,ys))[0][0]
+#     initial_state_y = list(zip(xs,ys))[0][1]
+#     # smooth 
+#     smoothed_trajs.append(smooth_traj_kalman(measurements, initial_state_x, initial_state_y, observation_uncertainty=100)[:,[0,2]]) # 0, 2 Depends on the shape of the observation_matrix
 
 
 
