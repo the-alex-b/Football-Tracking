@@ -4,11 +4,18 @@
 This repository combines machine learning and computer vision to turn broadcasted match footage into a valid 3d digital representation. Below a short description of the inner workings. If you have any questions on getting stuff working or if you want to contribute feel free to let us know!
 
 
-## How it works (WIP)
+## How it works
+Code execution can be split in two distinct steps. An extraction step that will use neural networks and computation heavy analysis to extract features from each frame, and an analysis step that will use the extracted features to determine player trajectories, create 2d top down view etc. This splitted approach will allow faster and easier development in analysis step since it will not be constrained by GPU usage.
 
-### Extraction (WIP)
 
-### Analysis (WIP)
+### 1. Extraction
+Extraction step can be done by switching run_extraction=True in run.py. This will yield an extracted_frames.p data file. This data file can be used as an import for step 2.
+
+You will need GPU (or Google Colab) to run this step,
+
+### 2. Analysis
+Analysis is done based on a .p data file. Homography is determined, player trajectories are created and visualization happens here. 
+
 
 
 ## To-Do's
