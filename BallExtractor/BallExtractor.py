@@ -150,7 +150,7 @@ class BallExtractor:
 
 
         if (nms): self.do_nms_obj(dets, num, self.meta.classes, nms);
-)
+
         res = []
         for j in range(num):
             for i in range(self.meta.classes):
